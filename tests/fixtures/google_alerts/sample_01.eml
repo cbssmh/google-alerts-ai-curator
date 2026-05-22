@@ -1,0 +1,829 @@
+Delivered-To: cbssmh@gmail.com
+Received: by 2002:a05:6638:4e21:b0:5de:a701:3754 with SMTP id eq1csp753743jab;
+        Thu, 21 May 2026 21:38:53 -0700 (PDT)
+X-Received: by 2002:a05:690c:4d83:b0:7c8:f80a:cb43 with SMTP id 00721157ae682-7d338099f23mr26823497b3.50.1779424733072;
+        Thu, 21 May 2026 21:38:53 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1779424733; cv=none;
+        d=google.com; s=arc-20240605;
+        b=WcpkHc8BBX1vIPIvzftRzVf1Ta3BoZvItqx7+Et5meCCch1JNQD8D9d/uaaDDh47Nm
+         x9MsNRmXsYTtQpj82t6kv/ivi5oQ6IwZWwKqi6BPXcLiN+dY1FVbIrNAzmE88o/7Xkgl
+         I0WqPwY4jmnGOd0h2HHZPt2DJACLLndBo2gWfhlK8r3dXtrFyVcraDg6L1yvEO+Yltxb
+         AvhWfFlgotJD+7tP4boKTfnwwyMIGcwaAy29C49XaG/dopJ2zgvxZTB/DpWp7tKFYld2
+         EB1hdzaXf7oO7qZ7OwKrWFzd6RhNM7Kp6oWiCRY+i46bFhwZm7Fn4rG5fYYNsWuznfMP
+         VqoQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=to:from:subject:message-id:list-unsubscribe:list-id:date
+         :mime-version:dkim-signature;
+        bh=5pOoyDe+vprzL/P2GjIDwO35icayr6mvCjbKuCvx6Ww=;
+        fh=hIFizyb3artPehULnjEyAemA2hRKN+IOWhMzx0WuKX4=;
+        b=GnRY2okA6OBCfl6uR/vx2wz6Q2iu43iSfEa4iZtnJ3iXMn6IQ6dI6Cw7uPIphAzDMe
+         kR+UsQXueYCUXPleJYOgzblEk6Mlg7Tbt9BGuO8HUrqvco8SFnMPOBwIa3mpOu+CJt4w
+         hwuMk6MJ1ILDLmwc//z9dlComKGVt3BKelT0iZq4kO8Id9uLFfAdkZutZGaHLJTL/9y3
+         C3oFCDniq4sF4yD3CobNeVq22ImO4isR32fR779q1mH+2wwvHuE1f6oYXLOCxB9NP0vI
+         KLCef6VDhB6y+oypuFU91BXRTpJGTBvR88typ4EbC33+LVxuvEuarjU1q4iRqVLUfKr/
+         aR5g==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@google.com header.s=20251104 header.b=nus5dFeK;
+       spf=pass (google.com: domain of 33n0pahqkbi8rzzrwplwpced-yzcpawjrzzrwp.nzxnmddxsrxltw.nzx@alerts.bounces.google.com designates 209.85.220.69 as permitted sender) smtp.mailfrom=33N0PahQKBi8RZZRWPLWPced-YZcPaWjRZZRWP.NZXNMddXSRXLTW.NZX@alerts.bounces.google.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=google.com;
+       dara=pass header.i=@gmail.com
+Return-Path: <33N0PahQKBi8RZZRWPLWPced-YZcPaWjRZZRWP.NZXNMddXSRXLTW.NZX@alerts.bounces.google.com>
+Received: from mail-sor-f69.google.com (mail-sor-f69.google.com. [209.85.220.69])
+        by mx.google.com with SMTPS id 00721157ae682-7d389a1c981sor5962877b3.3.2026.05.21.21.38.52
+        for <cbssmh@gmail.com>
+        (Google Transport Security);
+        Thu, 21 May 2026 21:38:53 -0700 (PDT)
+Received-SPF: pass (google.com: domain of 33n0pahqkbi8rzzrwplwpced-yzcpawjrzzrwp.nzxnmddxsrxltw.nzx@alerts.bounces.google.com designates 209.85.220.69 as permitted sender) client-ip=209.85.220.69;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@google.com header.s=20251104 header.b=nus5dFeK;
+       spf=pass (google.com: domain of 33n0pahqkbi8rzzrwplwpced-yzcpawjrzzrwp.nzxnmddxsrxltw.nzx@alerts.bounces.google.com designates 209.85.220.69 as permitted sender) smtp.mailfrom=33N0PahQKBi8RZZRWPLWPced-YZcPaWjRZZRWP.NZXNMddXSRXLTW.NZX@alerts.bounces.google.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=google.com;
+       dara=pass header.i=@gmail.com
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20251104; t=1779424732; x=1780029532; dara=google.com;
+        h=to:from:subject:message-id:list-unsubscribe:list-id:date
+         :mime-version:from:to:cc:subject:date:message-id:reply-to;
+        bh=5pOoyDe+vprzL/P2GjIDwO35icayr6mvCjbKuCvx6Ww=;
+        b=nus5dFeKGMUXZ9bg1piWPSlWiefwQqKxsLhpfNk3yy+L/wpMDOP/tgdWADRqlA84TM
+         sxaAKDvycpsSl8nXw1S/10Iwtss56npjcqXFKw8ggnaKQPqE11YoU8m1mMrEOFPWik40
+         WB1+nVCvt9XusKWFRNoSZ7zdfGu403lhZE7dJShVEsmFZI3+uJl0Py8NizLudWNBf20N
+         rzp83M7jY8kb2ClyQRyDPLD26v0rKMXQ+z9KdiCdHOL/o3K59UbAudp/UoQx3HN6wlBl
+         0LAvO72tFWgAfzYJYNoKbSwGDElOXvEREHiS3w/SUHz143ptvw2mWRNji+rVt+w49Uf0
+         thiA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1779424732; x=1780029532;
+        h=to:from:subject:message-id:list-unsubscribe:list-id:date
+         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=5pOoyDe+vprzL/P2GjIDwO35icayr6mvCjbKuCvx6Ww=;
+        b=KrIYPAVutC/jRmytqU2bIDYPeQXu1/bOIIb/HDp9oCzy5JcjRyYuJ7SqqSSrsmjm0D
+         R6IAvnpjlR3hlbfMoSp64OwgYr8XI8syINP+N08tv54/0xdZr8qREpXqTg2iSsq3KfNv
+         GEMRNznbrfT/xf58uQFic9LTLTIH3PNhG6UJEFmJPHZjH6tvQ3IRMi4YkOyySnrphgLL
+         xb5EU38II68qsE5IUh6KN9oEIxxeWCi0S2osXmSg2QqKoyctyfJYI4Ij4QAwF5emaCBS
+         bdyWkHw6rUFk4cjlR8Cf5vl872ZTM0nrmFLZRS9o2HNoz1gy1POT3+zHk0IZrFty8VvF
+         zBuw==
+X-Gm-Message-State: AOJu0YzhyERLf6zJ+85V0trzDJwO+aNy0NsZ9rr28nNM+r6n35wh1wrc
+	IRANZOCM2wTM+jECJkEoqe8dRJsCPJUeo6JUrVE=
+MIME-Version: 1.0
+X-Received: by 2002:a05:690c:968c:b0:7d0:354c:6594 with SMTP id
+ 00721157ae682-7d3373ac29dmr27029947b3.33.1779424732719; Thu, 21 May 2026
+ 21:38:52 -0700 (PDT)
+Date: Thu, 21 May 2026 21:38:52 -0700
+List-Id: <8034163020427890397.alerts.google.com>
+List-Unsubscribe: <mailto:ur@unsubscribe.alerts.google.com?subject=AB2Xq4jyE4qeINhnw3821bwprduG4qXrrkrR5q4>
+Message-ID: <6a0fdddc.050a0220.32ad11.2aa5googlealerts@google.com>
+Subject: Google Alert - Artificial Intelligence 2026
+From: Google Alerts <googlealerts-noreply@google.com>
+To: cbssmh@gmail.com
+Content-Type: multipart/alternative; boundary="000000000000192c810652609b66"
+
+--000000000000192c810652609b66
+Content-Type: text/plain; charset="UTF-8"; format=flowed; delsp=yes
+Content-Transfer-Encoding: base64
+
+PT09IE5ld3MgLSAxMCBuZXcgcmVzdWx0cyBmb3IgW0FydGlmaWNpYWwgSW50ZWxsaWdlbmNlIDIw
+MjZdID09PQ0KDQpUaGUgR3Jvd2luZyBBbnhpZXR5IE92ZXIgQUksIEpvYnMgYW5kIHRoZSBGdXR1
+cmUgLSBUaGUgTmV3IFlvcmsgVGltZXMNClRoZSBOZXcgWW9yayBUaW1lcw0KRGVhbEJvb2t8V2hv
+J3MgQWZyYWlkIG9mIEEuSS4/IGh0dHBzOi8vd3d3Lm55dGltZXMuY29tLzIwMjYvMDUvMjAgLi4u
+DQo8aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS91cmw/cmN0PWomc2E9dCZ1cmw9aHR0cHM6Ly93d3cu
+bnl0aW1lcy5jb20vMjAyNi8wNS8yMC9idXNpbmVzcy9kZWFsYm9vay9haS1qb2JzLWxheW9mZnMt
+bWV0YS5odG1sJmN0PWdhJmNkPUNBRVlBQ29UTnpneU16TTRPVFF3TmpZMU5EZzRPVFEyTlRJZU9H
+RTNOalUwT0RBd1lqUmxNVGM1TURwamJ5NXJjanBsYmpwVlV6cFMmdXNnPUFPdlZhdzMtY0x5THpH
+cmI2bGZZTDh1c3p0R1M+DQoNCjEwMCB0aGluZ3Mgd2UgYW5ub3VuY2VkIGF0IEkvTyAyMDI2IC0g
+R29vZ2xlIEJsb2cNCkdvb2dsZSBCbG9nDQpHZW1pbmkgT21uaSBGbGFzaCBpcyByb2xsaW5nIG91
+dCBub3cgdG8gYWxsIEdvb2dsZSBBSSBQbHVzLCBQcm8gYW5kIFVsdHJhDQpzdWJzY3JpYmVycyBn
+bG9iYWxseSB0aHJvdWdoIHRoZSBHZW1pbmkgYXBwIGFuZCBHb29nbGUgRmxvdy4gSXQncyBhbHNv
+IC4uLg0KPGh0dHBzOi8vd3d3Lmdvb2dsZS5jb20vdXJsP3JjdD1qJnNhPXQmdXJsPWh0dHBzOi8v
+YmxvZy5nb29nbGUvaW5ub3ZhdGlvbi1hbmQtYWkvdGVjaG5vbG9neS9haS9nb29nbGUtaW8tMjAy
+Ni1hbGwtb3VyLWFubm91bmNlbWVudHMvJmN0PWdhJmNkPUNBRVlBU29UTnpneU16TTRPVFF3TmpZ
+MU5EZzRPVFEyTlRJZU9HRTNOalUwT0RBd1lqUmxNVGM1TURwamJ5NXJjanBsYmpwVlV6cFMmdXNn
+PUFPdlZhdzNlcE0zZHB1dGdpamtXczkxdEllQzM+DQoNClRoZSBDbGFzcyBvZiAyMDI2IElzIFNp
+Y2sgb2YgSGVhcmluZyBBYm91dCBBSSAtIFNsYXRlIE1hZ2F6aW5lDQpTbGF0ZSBNYWdhemluZQ0K
+VGhleSBncmFkcyBhcmUgYWxzbyBwcmltZWQgdG8gYm9vIGFueSBzcGVha2VycyB3aG8gc28gbXVj
+aCBhcyBtdXR0ZXIgdGhlDQp3b3JkcyDigJxhcnRpZmljaWFsIGludGVsbGlnZW5jZS7igJ0gVGhl
+IGZpcnN0IHZpcmFsIGRlbW9uc3RyYXRpb24gb2YgdGhpcyAuLi4NCjxodHRwczovL3d3dy5nb29n
+bGUuY29tL3VybD9yY3Q9aiZzYT10JnVybD1odHRwczovL3NsYXRlLmNvbS90ZWNobm9sb2d5LzIw
+MjYvMDUvYWktY29sbGVnZS1ncmFkdWF0aW9uLXNwZWFrZXJzLWVyaWMtc2NobWlkdC5odG1sJmN0
+PWdhJmNkPUNBRVlBaW9UTnpneU16TTRPVFF3TmpZMU5EZzRPVFEyTlRJZU9HRTNOalUwT0RBd1lq
+UmxNVGM1TURwamJ5NXJjanBsYmpwVlV6cFMmdXNnPUFPdlZhdzNqWlNrNW81R3lXZHlVTDdOM0VM
+SGI+DQoNClRoZSBzb3VuZCBvZiBncmFkdWF0aW5nIGZyb20gY29sbGVnZSBpbiB0aGUgQUkgc3Vt
+bWVyIG9mIDIwMjY6IGJvbyEgfA0KRm9ydHVuZQ0KRm9ydHVuZQ0KQXQgc2V2ZXJhbCBjYW1wdXNl
+cywgZ3JhZHVhdGVzIGhhdmUgaW50ZXJydXB0ZWQgc3BlYWtlcnMgd2l0aCBzdGFkaXVtLXdpZGUN
+CmJvb3Mgd2hlbiB0aGUgdG9waWMgdHVybmVkIHRvIEFJLiBSZWNvbW1lbmRlZCBWaWRlby4gRm9y
+bWVyIEdvb2dsZSBDRU8gRXJpYw0KLi4uDQo8aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS91cmw/cmN0
+PWomc2E9dCZ1cmw9aHR0cHM6Ly9mb3J0dW5lLmNvbS8yMDI2LzA1LzIwL3RoZS1zb3VuZC1vZi1n
+cmFkdWF0aW5nLWZyb20tY29sbGVnZS1pbi10aGUtYWktc3VtbWVyLW9mLTIwMjYtYm9vLyZjdD1n
+YSZjZD1DQUVZQXlvVE56Z3lNek00T1RRd05qWTFORGc0T1RRMk5USWVPR0UzTmpVME9EQXdZalJs
+TVRjNU1EcGpieTVyY2pwbGJqcFZVenBTJnVzZz1BT3ZWYXcybE1zMlprc3JOLVBxSnNSd1dFM1FX
+Pg0KDQpBbnRpY2lwYXRlZCBleGVjdXRpdmUgb3JkZXIgY291bGQgZ2l2ZSBOU0EgYSByb2xlIGlu
+IHZvbHVudGFyeSBBSSBtb2RlbA0KdGVzdGluZyAtIE5leHRnb3YvRkNXDQpOZXh0Z292L0ZDVw0K
+Li4uIDIwMjYgRmVkZXJhbCAxMDAgwrcgc3BvbnNvciBjb250ZW50LiBDbGF1ZGUgTXl0aG9zIGFk
+dmFuY2VzIGF1dG9ub21vdXMNCi4uLiBhcnRpZmljaWFsIGludGVsbGlnZW5jZSBtb2RlbHMgdGhh
+dCBjb3VsZCBiZSB1c2VkIGZvciBoYWNraW5nIGFuZA0KY3liZXJkZWZlbnNlIC4uLg0KPGh0dHBz
+Oi8vd3d3Lmdvb2dsZS5jb20vdXJsP3JjdD1qJnNhPXQmdXJsPWh0dHBzOi8vd3d3Lm5leHRnb3Yu
+Y29tL2FydGlmaWNpYWwtaW50ZWxsaWdlbmNlLzIwMjYvMDUvYW50aWNpcGF0ZWQtZXhlY3V0aXZl
+LW9yZGVyLWNvdWxkLWdpdmUtbnNhLXJvbGUtdm9sdW50YXJ5LWFpLW1vZGVsLXRlc3RpbmcvNDEz
+NjYzLyZjdD1nYSZjZD1DQUVZQkNvVE56Z3lNek00T1RRd05qWTFORGc0T1RRMk5USWVPR0UzTmpV
+ME9EQXdZalJsTVRjNU1EcGpieTVyY2pwbGJqcFZVenBTJnVzZz1BT3ZWYXczc1FaNVhfSGdqYTdq
+Wi01V2xta3RxPg0KDQpBZHZpY2UgZm9yIDIwMjYgY29tbWVuY2VtZW50IHNwZWFrZXJzOiBEb24n
+dCBicmluZyB1cCBBSSAtIE5QUg0KTlBSDQpDb21tZW5jZW1lbnQgc3BlYWtlcnMgd2hvIGJyaW5n
+IHVwIHRoZSBzd2VlcGluZyBjaGFuZ2VzIHRoYXQgYXJ0aWZpY2lhbA0KaW50ZWxsaWdlbmNlIGlz
+IGRyaXZpbmcgYXJlIGZhY2luZyBib29zIGZyb20gdGhlIENsYXNzIG9mIDIwMjYuDQo8aHR0cHM6
+Ly93d3cuZ29vZ2xlLmNvbS91cmw/cmN0PWomc2E9dCZ1cmw9aHR0cHM6Ly93d3cubnByLm9yZy8y
+MDI2LzA1LzIwL254LXMxLTU4MjI0MTkvYWktY29sbGVnZXMtY29tbWVuY2VtZW50LWJvb2luZyZj
+dD1nYSZjZD1DQUVZQlNvVE56Z3lNek00T1RRd05qWTFORGc0T1RRMk5USWVPR0UzTmpVME9EQXdZ
+alJsTVRjNU1EcGpieTVyY2pwbGJqcFZVenBTJnVzZz1BT3ZWYXcxcXBGU3piZW51M3ZFY25fVm01
+WVFDPg0KDQpTcGVjdGVyIG9mIEFJIEhhdW50cyBDbGFzcyBvZiAyMDI2IC0gSW5zaWRlIEhpZ2hl
+ciBFZA0KSW5zaWRlIEhpZ2hlciBFZA0KU2ltbWVyaW5nIHN0dWRlbnQgZmVhciBhbmQgYW54aWV0
+eSBvdmVyIGhvdyBhcnRpZmljaWFsIGludGVsbGlnZW5jZSBpcw0KcmFwaWRseSByZXNoYXBpbmcg
+dGhlIGpvYiBtYXJrZXTigJRhbmQgaHVtYW5pdHnigJRjYW1lIHRvIGEgYm9pbGluZyBwb2ludCAu
+Li4NCjxodHRwczovL3d3dy5nb29nbGUuY29tL3VybD9yY3Q9aiZzYT10JnVybD1odHRwczovL3d3
+dy5pbnNpZGVoaWdoZXJlZC5jb20vbmV3cy90ZWNoLWlubm92YXRpb24vYXJ0aWZpY2lhbC1pbnRl
+bGxpZ2VuY2UvMjAyNi8wNS8yMS9zcGVjdGVyLWFpLWhhdW50cy1jbGFzcy0yMDI2JmN0PWdhJmNk
+PUNBRVlCaW9UTnpneU16TTRPVFF3TmpZMU5EZzRPVFEyTlRJZU9HRTNOalUwT0RBd1lqUmxNVGM1
+TURwamJ5NXJjanBsYmpwVlV6cFMmdXNnPUFPdlZhdzNyWldXelFUd2pQSmhYcklvcHhJNy0+DQoN
+CkFJICYgVGVjaCBCcmllZjogRXhjbHVzaXZlIHwgV2hpdGUgSG91c2UgQUkgb3JkZXIgZXhwZWN0
+ZWQgLSBUaGUgV2FzaGluZ3Rvbg0KUG9zdA0KVGhlIFdhc2hpbmd0b24gUG9zdA0KR29vZ2xlJ3Mg
+QUkgZWNvc3lzdGVtIGJldC4gR29vZ2xlIHVudmVpbGVkIGEgc2VyaWVzIG9mIG5ldyBwcm9kdWN0
+cyBhbmQgQUkNCmluaXRpYXRpdmVzIFR1ZXNkYXkgYXQgR29vZ2xlIEkvTyAyMDI2LCB0aGUgY29t
+cGFueSdzIGFubnVhbCBkZXZlbG9wZXIgLi4uDQo8aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS91cmw/
+cmN0PWomc2E9dCZ1cmw9aHR0cHM6Ly93d3cud2FzaGluZ3RvbnBvc3QuY29tL3dwLWludGVsbGln
+ZW5jZS9haS10ZWNoLWJyaWVmLzIwMjYvMDUvMjAvYWktdGVjaC1icmllZi1nb29nbGVzLWFpLW9w
+ZXJhdGluZy1zeXN0ZW0vJmN0PWdhJmNkPUNBRVlCeW9UTnpneU16TTRPVFF3TmpZMU5EZzRPVFEy
+TlRJZU9HRTNOalUwT0RBd1lqUmxNVGM1TURwamJ5NXJjanBsYmpwVlV6cFMmdXNnPUFPdlZhdzB5
+ZXp4bU4xY0QweUw3MDZWclhyWWI+DQoNCkdvb2dsZSBTaGlmdHMgdG8gQUkgU2VhcmNoLCBIZXJh
+bGRpbmcgTWFqb3IgQ2hhbmdlIGluIEhvdyBQZW9wbGUgVXNlIHRoZQ0KSW50ZXJuZXQgLSBUSU1F
+DQpUSU1FDQouLi4gMjAyNiwgd2l0aCBhIGZvY3VzIG9uIEFJIGluZnJhc3RydWN0dXJlIGFuZCBj
+aGlwcywgYWNjb3JkaW5nIHRvIFBpY2hhaS4NCkFkdmVydGlzZW1lbnQuIEluIGl0cyBsYXN0IHF1
+YXJ0ZXIsIEdvb2dsZSByZXBvcnRlZCB0aGF0IGl0cyBhZHZlcnRpc2luZyAuLi4NCjxodHRwczov
+L3d3dy5nb29nbGUuY29tL3VybD9yY3Q9aiZzYT10JnVybD1odHRwczovL3RpbWUuY29tL2FydGlj
+bGUvMjAyNi8wNS8yMC9nb29nbGUtc2VhcmNoLWFpLWludGVybmV0LyZjdD1nYSZjZD1DQUVZQ0Nv
+VE56Z3lNek00T1RRd05qWTFORGc0T1RRMk5USWVPR0UzTmpVME9EQXdZalJsTVRjNU1EcGpieTVy
+Y2pwbGJqcFZVenBTJnVzZz1BT3ZWYXcxWnN1RHlWX3oyQkJXUVd0ODhpeXFKPg0KDQpHb29nbGUg
+aXMgZGV0aHJvbmluZyBPcGVuQUkgYXMgdGhlIGtpbmcgb2YgY29uc3VtZXIgQUkgLSBUaGUgRWNv
+bm9taXN0DQpUaGUgRWNvbm9taXN0DQpCdXQgd2hlbiBpdCBjb21lcyB0byBhcnRpZmljaWFsIGlu
+dGVsbGlnZW5jZSwgR29vZ2xlIGxvbmcgYWdvIC4uLiBNb2RlbHMNCndhbGsgdGhlIHJ1bndheSBk
+dXJpbmcgdGhlIENoYW5lbCBDcnVpc2UgMjAyNi8yNyBvbiBBcHJpbCAyOCwgMjAyNiAuLi4NCjxo
+dHRwczovL3d3dy5nb29nbGUuY29tL3VybD9yY3Q9aiZzYT10JnVybD1odHRwczovL3d3dy5lY29u
+b21pc3QuY29tL2J1c2luZXNzLzIwMjYvMDUvMjAvZ29vZ2xlLWlzLWRldGhyb25pbmctb3BlbmFp
+LWFzLXRoZS1raW5nLW9mLWNvbnN1bWVyLWFpJmN0PWdhJmNkPUNBRVlDU29UTnpneU16TTRPVFF3
+TmpZMU5EZzRPVFEyTlRJZU9HRTNOalUwT0RBd1lqUmxNVGM1TURwamJ5NXJjanBsYmpwVlV6cFMm
+dXNnPUFPdlZhdzFXSVF4ZjVtb3RYVTBHVTB0QW5vNGc+DQoNCg0KLSAtIC0gLSAtIC0gLSAtIC0g
+LSAtIC0gLSAtIC0gLSAtIC0gLSAtIC0gLSAtIC0gLSAtIC0gLSAtIC0gLSAtIC0gLQ0KVW5zdWJz
+Y3JpYmUgZnJvbSB0aGlzIEdvb2dsZSBBbGVydDoNCjxodHRwczovL3d3dy5nb29nbGUuY28ua3Iv
+YWxlcnRzL3JlbW92ZT9zb3VyY2U9YWxlcnRzbWFpbCZobD1lbiZnbD1VUyZtc2dpZD1Oemd5TXpN
+NE9UUXdOalkxTkRnNE9UUTJOUSZzPUFCMlhxNGp5RTRxZUlOaG53MzgyMWJ3cHJkdUc0cVhycmty
+UjVxND4NCg0KQ3JlYXRlIGFub3RoZXIgR29vZ2xlIEFsZXJ0Og0KPGh0dHBzOi8vd3d3Lmdvb2ds
+ZS5jby5rci9hbGVydHM/c291cmNlPWFsZXJ0c21haWwmaGw9ZW4mZ2w9VVMmbXNnaWQ9TnpneU16
+TTRPVFF3TmpZMU5EZzRPVFEyTlE+DQoNClNpZ24gaW4gdG8gbWFuYWdlIHlvdXIgYWxlcnRzOg0K
+PGh0dHBzOi8vd3d3Lmdvb2dsZS5jby5rci9hbGVydHM/c291cmNlPWFsZXJ0c21haWwmaGw9ZW4m
+Z2w9VVMmbXNnaWQ9TnpneU16TTRPVFF3TmpZMU5EZzRPVFEyTlE+DQo=
+--000000000000192c810652609b66
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<html lang=3D"en-US"> <head> </head> <body> <div>  <script data-scope=3D"in=
+boxmarkup" type=3D"application/json">{
+  "api_version": "1.0",
+  "publisher": {
+    "api_key": "668269e72cfedea31b22524041ff21d9",
+    "name": "Google Alerts"
+  },
+  "entity": {
+    "external_key": "Google Alert - Artificial Intelligence 2026",
+    "title": "Google Alert - Artificial Intelligence 2026",
+    "subtitle": "Latest: May 22, 2026",
+    "avatar_image_url": "https://www.gstatic.com/images/branding/product/1x=
+/gsa_512dp.png",
+    "main_image_url": "https://www.gstatic.com/bt/C3341AA7A1A076756462EE2E5=
+CD71C11/smartmail/mobile/il_newspaper_header_r1.png"
+  },
+  "updates": {
+    "snippets": [ {
+      "icon": "BOOKMARK",
+      "message": "The Growing Anxiety Over AI, Jobs and the Future - The Ne=
+w York Times"
+    }, {
+      "icon": "BOOKMARK",
+      "message": "100 things we announced at I/O 2026 - Google Blog"
+    }, {
+      "icon": "BOOKMARK",
+      "message": "The Class of 2026 Is Sick of Hearing About AI - Slate Mag=
+azine"
+    } ]
+  },
+  "cards": [ {
+    "title": "Google Alert - Artificial Intelligence 2026",
+    "subtitle": "Highlights from the latest email",
+    "actions": [ {
+      "name": "See more results",
+      "url": "https://www.google.co.kr/alerts?s=3DAB2Xq4jyE4qeINhnw3821bwpr=
+duG4qXrrkrR5q4\u0026start=3D1779332417\u0026end=3D1779424732\u0026source=3D=
+alertsmail\u0026hl=3Den\u0026gl=3DUS\u0026msgid=3DNzgyMzM4OTQwNjY1NDg4OTQ2N=
+Q#history"
+    } ],
+    "widgets": [ {
+      "type": "LINK",
+      "title": "The Growing Anxiety Over AI, Jobs and the Future - The New =
+York Times",
+      "description": "DealBook|Who's Afraid of A.I.? https://www.nytimes.co=
+m/2026/05/20 ...",
+      "url": "https://www.google.com/url?rct=3Dj\u0026sa=3Dt\u0026url=3Dhtt=
+ps://www.nytimes.com/2026/05/20/business/dealbook/ai-jobs-layoffs-meta.html=
+\u0026ct=3Dga\u0026cd=3DCAEYACoTNzgyMzM4OTQwNjY1NDg4OTQ2NTIeOGE3NjU0ODAwYjR=
+lMTc5MDpjby5rcjplbjpVUzpS\u0026usg=3DAOvVaw3-cLyLzGrb6lfYL8usztGS"
+    }, {
+      "type": "LINK",
+      "title": "100 things we announced at I/O 2026 - Google Blog",
+      "description": "Gemini Omni Flash is rolling out now to all Google AI=
+ Plus, Pro and Ultra subscribers globally through the Gemini app and Google=
+ Flow. It's also ...",
+      "image_url": "https://i.ytimg.com/vi/YXbCQVhKb-Q/maxresdefault.jpg",
+      "url": "https://www.google.com/url?rct=3Dj\u0026sa=3Dt\u0026url=3Dhtt=
+ps://blog.google/innovation-and-ai/technology/ai/google-io-2026-all-our-ann=
+ouncements/\u0026ct=3Dga\u0026cd=3DCAEYASoTNzgyMzM4OTQwNjY1NDg4OTQ2NTIeOGE3=
+NjU0ODAwYjRlMTc5MDpjby5rcjplbjpVUzpS\u0026usg=3DAOvVaw3epM3dputgijkWs91tIeC=
+3"
+    }, {
+      "type": "LINK",
+      "title": "The Class of 2026 Is Sick of Hearing About AI - Slate Magaz=
+ine",
+      "description": "They grads are also primed to boo any speakers who so=
+ much as mutter the words =E2=80=9Cartificial intelligence.=E2=80=9D The fi=
+rst viral demonstration of this ...",
+      "url": "https://www.google.com/url?rct=3Dj\u0026sa=3Dt\u0026url=3Dhtt=
+ps://slate.com/technology/2026/05/ai-college-graduation-speakers-eric-schmi=
+dt.html\u0026ct=3Dga\u0026cd=3DCAEYAioTNzgyMzM4OTQwNjY1NDg4OTQ2NTIeOGE3NjU0=
+ODAwYjRlMTc5MDpjby5rcjplbjpVUzpS\u0026usg=3DAOvVaw3jZSk5o5GyWdyUL7N3ELHb"
+    }, {
+      "type": "LINK",
+      "title": "The sound of graduating from college in the AI summer of 20=
+26: boo! | Fortune",
+      "description": "At several campuses, graduates have interrupted speak=
+ers with stadium-wide boos when the topic turned to AI. Recommended Video. =
+Former Google CEO Eric ...",
+      "url": "https://www.google.com/url?rct=3Dj\u0026sa=3Dt\u0026url=3Dhtt=
+ps://fortune.com/2026/05/20/the-sound-of-graduating-from-college-in-the-ai-=
+summer-of-2026-boo/\u0026ct=3Dga\u0026cd=3DCAEYAyoTNzgyMzM4OTQwNjY1NDg4OTQ2=
+NTIeOGE3NjU0ODAwYjRlMTc5MDpjby5rcjplbjpVUzpS\u0026usg=3DAOvVaw2lMs2ZksrN-Pq=
+JsRwWE3QW"
+    } ]
+  } ]
+}
+</script> <!--[if mso]>
+ <table><tr><td width=3D650>
+<![endif]-->
+ <div style=3D"width:100%;max-width:650px"> <div style=3D"font-family:Arial=
+"> <table style=3D"border-collapse:collapse;border-left:1px solid #e4e4e4;b=
+order-right:1px solid #e4e4e4"> <tr> <td style=3D"background-color:#f8f8f8;=
+padding-left:18px;border-bottom:1px solid #e4e4e4;border-top:1px solid #e4e=
+4e4"></td> <td valign=3D"middle" style=3D"padding:13px 10px 8px 0px;backgro=
+und-color:#f8f8f8;border-top:1px solid #e4e4e4;border-bottom:1px solid #e4e=
+4e4"> <a href=3D"https://www.google.co.kr/alerts?source=3Dalertsmail&amp;hl=
+=3Den&amp;gl=3DUS&amp;msgid=3DNzgyMzM4OTQwNjY1NDg4OTQ2NQ" style=3D"text-dec=
+oration:none"> <img src=3D"https://www.google.com/intl/en_us/alerts/logo.pn=
+g?cd=3DKhM3ODIzMzg5NDA2NjU0ODg5NDY1" alt=3D"Google" border=3D"0" height=3D"=
+25"> </a> </td> <td style=3D"background-color:#f8f8f8;padding-left:18px;bor=
+der-top:1px solid #e4e4e4;border-bottom:1px solid #e4e4e4"></td> </tr>  <tr=
+> <td style=3D"padding-left:32px"></td> <td style=3D"padding:18px 0px 0px 0=
+px;vertical-align:middle;line-height:20px;font-family:Arial"> <span style=
+=3D"color:#262626;font-size:22px">Artificial Intelligence 2026</span> <div =
+style=3D"vertical-align:top;padding-top:6px;color:#aaa;font-size:12px;line-=
+height:16px"> <span>Daily update</span> <span style=3D"padding:0px 4px 0px =
+4px">&sdot;</span> <a style=3D"color:#aaa;text-decoration:none">May 22, 202=
+6</a> </div> </td> <td style=3D"padding-left:32px"></td> </tr>  <tr> <td st=
+yle=3D"padding-left:18px"></td> <td style=3D"padding:16px 0px 12px 0px;bord=
+er-bottom:1px solid #e4e4e4"> <span style=3D"font-size:12px;color:#737373">=
+ NEWS </span> </td> <td style=3D"padding-right:18px"></td> </tr>   <tr item=
+scope=3D"" itemtype=3D"http://schema.org/Article"> <td style=3D"padding-lef=
+t:18px"></td> <td style=3D"padding:18px 0px 12px 0px;vertical-align:top;fon=
+t-family:Arial"> <a></a> <div>  <span style=3D"padding:0px 6px 0px 0px"> <a=
+ href=3D"https://www.google.com/url?rct=3Dj&amp;sa=3Dt&amp;url=3Dhttps://ww=
+w.nytimes.com/2026/05/20/business/dealbook/ai-jobs-layoffs-meta.html&amp;ct=
+=3Dga&amp;cd=3DCAEYACoTNzgyMzM4OTQwNjY1NDg4OTQ2NTIeOGE3NjU0ODAwYjRlMTc5MDpj=
+by5rcjplbjpVUzpS&amp;usg=3DAOvVaw3-cLyLzGrb6lfYL8usztGS" itemprop=3D"url" s=
+tyle=3D"color:#427fed;display:inline;text-decoration:none;font-size:16px;li=
+ne-height:20px"> <span itemprop=3D"name">The Growing Anxiety Over <b>AI</b>=
+, Jobs and the Future - The New York Times</span> </a> </span>  <div> <div =
+style=3D"padding:2px 0px 8px 0px"> <div itemprop=3D"publisher" itemscope=3D=
+"" itemtype=3D"http://schema.org/Organization" style=3D"color:#737373;font-=
+size:12px"> <a style=3D"text-decoration:none;color:#737373"> <span itemprop=
+=3D"name">The New York Times</span> </a> </div> <div itemprop=3D"descriptio=
+n" style=3D"color:#252525;padding:2px 0px 0px 0px;font-size:12px;line-heigh=
+t:18px">DealBook|Who&#39;s Afraid of <b>A.I.</b>? https://www.nytimes.com/<=
+b>2026</b>/05/20&nbsp;...</div> </div>   <table> <tr> <td width=3D"16" styl=
+e=3D"padding-right:6px"> <a href=3D"https://www.google.co.kr/alerts/share?h=
+l=3Den&amp;gl=3DUS&amp;ru=3Dhttps://www.nytimes.com/2026/05/20/business/dea=
+lbook/ai-jobs-layoffs-meta.html&amp;ss=3Dfb&amp;rt=3DThe+Growing+Anxiety+Ov=
+er+AI,+Jobs+and+the+Future+-+The+New+York+Times&amp;cd=3DKhM3ODIzMzg5NDA2Nj=
+U0ODg5NDY1Mh44YTc2NTQ4MDBiNGUxNzkwOmNvLmtyOmVuOlVTOlI&amp;ssp=3DAMJHsmXZEll=
+EFJ7AG4-n2Wyyo5FhRpy2tQ" style=3D"text-decoration:none"> <img alt=3D"Facebo=
+ok" src=3D"https://www.gstatic.com/alerts/images/fb-24.png" border=3D"0" he=
+ight=3D"16" width=3D"16"></a> </td> <td width=3D"16" style=3D"padding-right=
+:6px"> <a href=3D"https://www.google.co.kr/alerts/share?hl=3Den&amp;gl=3DUS=
+&amp;ru=3Dhttps://www.nytimes.com/2026/05/20/business/dealbook/ai-jobs-layo=
+ffs-meta.html&amp;ss=3Dtw&amp;rt=3DThe+Growing+Anxiety+Over+AI,+Jobs+and+th=
+e+Future+-+The+New+York+Times&amp;cd=3DKhM3ODIzMzg5NDA2NjU0ODg5NDY1Mh44YTc2=
+NTQ4MDBiNGUxNzkwOmNvLmtyOmVuOlVTOlI&amp;ssp=3DAMJHsmXZEllEFJ7AG4-n2Wyyo5FhR=
+py2tQ" style=3D"text-decoration:none"> <img alt=3D"Twitter" src=3D"https://=
+www.gstatic.com/alerts/images/tw-24.png" border=3D"0" height=3D"16" width=
+=3D"16"></a> </td> <td style=3D"padding:0px 0px 6px 15px;font-family:Arial"=
+> <a href=3D"https://www.google.co.kr/alerts/feedback?ffu=3Dhttps://www.nyt=
+imes.com/2026/05/20/business/dealbook/ai-jobs-layoffs-meta.html&amp;source=
+=3Dalertsmail&amp;hl=3Den&amp;gl=3DUS&amp;msgid=3DNzgyMzM4OTQwNjY1NDg4OTQ2N=
+Q&amp;s=3DAB2Xq4jyE4qeINhnw3821bwprduG4qXrrkrR5q4" style=3D"text-decoration=
+:none;vertical-align:middle;color:#aaa;font-size:10px"> Flag as irrelevant =
+</a> </td> </tr> </table>  </div> </div> </td> <td style=3D"padding-right:1=
+8px"></td> </tr>    <tr itemscope=3D"" itemtype=3D"http://schema.org/Articl=
+e"> <td style=3D"padding-left:18px"></td> <td style=3D"padding:18px 0px 12p=
+x 0px;vertical-align:top;border-top:1px solid #e4e4e4;font-family:Arial"> <=
+a href=3D"https://www.google.com/url?rct=3Dj&amp;sa=3Dt&amp;url=3Dhttps://b=
+log.google/innovation-and-ai/technology/ai/google-io-2026-all-our-announcem=
+ents/&amp;ct=3Dga&amp;cd=3DCAEYASoTNzgyMzM4OTQwNjY1NDg4OTQ2NTIeOGE3NjU0ODAw=
+YjRlMTc5MDpjby5rcjplbjpVUzpS&amp;usg=3DAOvVaw3epM3dputgijkWs91tIeC3" style=
+=3D"text-decoration:none"> <table align=3D"right" style=3D"display:inline;b=
+order-collapse:collapse"> <tr> <td style=3D"padding-left:18px"></td> <td he=
+ight=3D"100" width=3D"100" valign=3D"bottom" style=3D"padding:0px 0px 0px 0=
+px;background-repeat:no-repeat;text-align:center;background-image:url(https=
+://encrypted-tbn2.gstatic.com/images?q=3Dtbn:ANd9GcQHEWTLgcC25v1U50QZm2-tvx=
+BDOZHKywurbkhxbPoSlg_5gvuQfuNlatI);border:1px solid #e4e4e4"> <link href=3D=
+"https://encrypted-tbn2.gstatic.com/images?q=3Dtbn:ANd9GcTbeesgFqF5XrbjgtmM=
+W6qk94BBiLn2hzhsFqcaV7lWQ9f-F8sK3ETEw9UgBA" itemprop=3D"image"> <!--[if gte=
+ mso 9]>
+       <v:image xmlns:v=3D"urn:schemas-microsoft-com:vml" id=3D"theImage"
+                style=3D'behavior: url(#default#VML);
+                       display:inline-block; position:absolute;
+                       height: 100px; width: 100px;
+                       top:0; left:0; border:0; z-index:1;' src=3D"https://=
+encrypted-tbn2.gstatic.com/images%3Fq%3Dtbn:ANd9GcQHEWTLgcC25v1U50QZm2-tvxB=
+DOZHKywurbkhxbPoSlg_5gvuQfuNlatI"/>
+       <v:rect xmlns:v=3D"urn:schemas-microsoft-com:vml"
+               style=3D'behavior: url(#default#VML);
+                      display:inline-block;
+                      position: absolute; top: 82px; left: 0px;
+                      width:100px; border:0; z-index:2;' strokecolor=3D"non=
+e">
+       <v:fill opacity=3D"50%" color=3D"#000000"/>
+       <v:textbox style=3D"mso-fit-shape-to-text:t;
+                         mso-column-margin: 0pt;
+                         letter-spacing: 0.8px;"
+                         inset=3D"0pt,0pt,0pt,0pt">
+         <font size=3D"-1" color=3D"#ffffff"></font>
+       </v:textbox>
+       </v:rect>
+       <div style=3D"display: none">
+       <![endif]--> <div style=3D"color:#fff;font-size:9px;letter-spacing:0=
+.8px"> <div style=3D"padding:3px 0px 4px 4px;background:rgb(255,255,255);ba=
+ckground-color:rgba(0,0,0,0.5);width:96px"></div> </div> <!--[if gte mso 9]=
+></div><![endif]--> </td> </tr> </table> </a> <div>  <span style=3D"padding=
+:0px 6px 0px 0px"> <a href=3D"https://www.google.com/url?rct=3Dj&amp;sa=3Dt=
+&amp;url=3Dhttps://blog.google/innovation-and-ai/technology/ai/google-io-20=
+26-all-our-announcements/&amp;ct=3Dga&amp;cd=3DCAEYASoTNzgyMzM4OTQwNjY1NDg4=
+OTQ2NTIeOGE3NjU0ODAwYjRlMTc5MDpjby5rcjplbjpVUzpS&amp;usg=3DAOvVaw3epM3dputg=
+ijkWs91tIeC3" itemprop=3D"url" style=3D"color:#427fed;display:inline;text-d=
+ecoration:none;font-size:16px;line-height:20px"> <span itemprop=3D"name">10=
+0 things we announced at I/O <b>2026</b> - Google Blog</span> </a> </span> =
+ <div> <div style=3D"padding:2px 0px 8px 0px"> <div itemprop=3D"publisher" =
+itemscope=3D"" itemtype=3D"http://schema.org/Organization" style=3D"color:#=
+737373;font-size:12px"> <a style=3D"text-decoration:none;color:#737373"> <s=
+pan itemprop=3D"name">Google Blog</span> </a> </div> <div itemprop=3D"descr=
+iption" style=3D"color:#252525;padding:2px 0px 0px 0px;font-size:12px;line-=
+height:18px">Gemini Omni Flash is rolling out now to all Google <b>AI</b> P=
+lus, Pro and Ultra subscribers globally through the Gemini app and Google F=
+low. It&#39;s also&nbsp;...</div> </div>   <table> <tr> <td width=3D"16" st=
+yle=3D"padding-right:6px"> <a href=3D"https://www.google.co.kr/alerts/share=
+?hl=3Den&amp;gl=3DUS&amp;ru=3Dhttps://blog.google/innovation-and-ai/technol=
+ogy/ai/google-io-2026-all-our-announcements/&amp;ss=3Dfb&amp;rt=3D100+thing=
+s+we+announced+at+I/O+2026+-+Google+Blog&amp;cd=3DKhM3ODIzMzg5NDA2NjU0ODg5N=
+DY1Mh44YTc2NTQ4MDBiNGUxNzkwOmNvLmtyOmVuOlVTOlI&amp;ssp=3DAMJHsmXzJNqmigBvmi=
+4e6prXi9Ka8KK6Tg" style=3D"text-decoration:none"> <img alt=3D"Facebook" src=
+=3D"https://www.gstatic.com/alerts/images/fb-24.png" border=3D"0" height=3D=
+"16" width=3D"16"></a> </td> <td width=3D"16" style=3D"padding-right:6px"> =
+<a href=3D"https://www.google.co.kr/alerts/share?hl=3Den&amp;gl=3DUS&amp;ru=
+=3Dhttps://blog.google/innovation-and-ai/technology/ai/google-io-2026-all-o=
+ur-announcements/&amp;ss=3Dtw&amp;rt=3D100+things+we+announced+at+I/O+2026+=
+-+Google+Blog&amp;cd=3DKhM3ODIzMzg5NDA2NjU0ODg5NDY1Mh44YTc2NTQ4MDBiNGUxNzkw=
+OmNvLmtyOmVuOlVTOlI&amp;ssp=3DAMJHsmXzJNqmigBvmi4e6prXi9Ka8KK6Tg" style=3D"=
+text-decoration:none"> <img alt=3D"Twitter" src=3D"https://www.gstatic.com/=
+alerts/images/tw-24.png" border=3D"0" height=3D"16" width=3D"16"></a> </td>=
+ <td style=3D"padding:0px 0px 6px 15px;font-family:Arial"> <a href=3D"https=
+://www.google.co.kr/alerts/feedback?ffu=3Dhttps://blog.google/innovation-an=
+d-ai/technology/ai/google-io-2026-all-our-announcements/&amp;source=3Dalert=
+smail&amp;hl=3Den&amp;gl=3DUS&amp;msgid=3DNzgyMzM4OTQwNjY1NDg4OTQ2NQ&amp;s=
+=3DAB2Xq4jyE4qeINhnw3821bwprduG4qXrrkrR5q4" style=3D"text-decoration:none;v=
+ertical-align:middle;color:#aaa;font-size:10px"> Flag as irrelevant </a> </=
+td> </tr> </table>  </div> </div> </td> <td style=3D"padding-right:18px"></=
+td> </tr>    <tr itemscope=3D"" itemtype=3D"http://schema.org/Article"> <td=
+ style=3D"padding-left:18px"></td> <td style=3D"padding:18px 0px 12px 0px;v=
+ertical-align:top;border-top:1px solid #e4e4e4;font-family:Arial"> <a></a> =
+<div>  <span style=3D"padding:0px 6px 0px 0px"> <a href=3D"https://www.goog=
+le.com/url?rct=3Dj&amp;sa=3Dt&amp;url=3Dhttps://slate.com/technology/2026/0=
+5/ai-college-graduation-speakers-eric-schmidt.html&amp;ct=3Dga&amp;cd=3DCAE=
+YAioTNzgyMzM4OTQwNjY1NDg4OTQ2NTIeOGE3NjU0ODAwYjRlMTc5MDpjby5rcjplbjpVUzpS&a=
+mp;usg=3DAOvVaw3jZSk5o5GyWdyUL7N3ELHb" itemprop=3D"url" style=3D"color:#427=
+fed;display:inline;text-decoration:none;font-size:16px;line-height:20px"> <=
+span itemprop=3D"name">The Class of <b>2026</b> Is Sick of Hearing About <b=
+>AI</b> - Slate Magazine</span> </a> </span>  <div> <div style=3D"padding:2=
+px 0px 8px 0px"> <div itemprop=3D"publisher" itemscope=3D"" itemtype=3D"htt=
+p://schema.org/Organization" style=3D"color:#737373;font-size:12px"> <a sty=
+le=3D"text-decoration:none;color:#737373"> <span itemprop=3D"name">Slate Ma=
+gazine</span> </a> </div> <div itemprop=3D"description" style=3D"color:#252=
+525;padding:2px 0px 0px 0px;font-size:12px;line-height:18px">They grads are=
+ also primed to boo any speakers who so much as mutter the words =E2=80=9C<=
+b>artificial intelligence</b>.=E2=80=9D The first viral demonstration of th=
+is&nbsp;...</div> </div>   <table> <tr> <td width=3D"16" style=3D"padding-r=
+ight:6px"> <a href=3D"https://www.google.co.kr/alerts/share?hl=3Den&amp;gl=
+=3DUS&amp;ru=3Dhttps://slate.com/technology/2026/05/ai-college-graduation-s=
+peakers-eric-schmidt.html&amp;ss=3Dfb&amp;rt=3DThe+Class+of+2026+Is+Sick+of=
++Hearing+About+AI+-+Slate+Magazine&amp;cd=3DKhM3ODIzMzg5NDA2NjU0ODg5NDY1Mh4=
+4YTc2NTQ4MDBiNGUxNzkwOmNvLmtyOmVuOlVTOlI&amp;ssp=3DAMJHsmWt_eb8KzdcP5D43UND=
+K2UrQFAr0A" style=3D"text-decoration:none"> <img alt=3D"Facebook" src=3D"ht=
+tps://www.gstatic.com/alerts/images/fb-24.png" border=3D"0" height=3D"16" w=
+idth=3D"16"></a> </td> <td width=3D"16" style=3D"padding-right:6px"> <a hre=
+f=3D"https://www.google.co.kr/alerts/share?hl=3Den&amp;gl=3DUS&amp;ru=3Dhtt=
+ps://slate.com/technology/2026/05/ai-college-graduation-speakers-eric-schmi=
+dt.html&amp;ss=3Dtw&amp;rt=3DThe+Class+of+2026+Is+Sick+of+Hearing+About+AI+=
+-+Slate+Magazine&amp;cd=3DKhM3ODIzMzg5NDA2NjU0ODg5NDY1Mh44YTc2NTQ4MDBiNGUxN=
+zkwOmNvLmtyOmVuOlVTOlI&amp;ssp=3DAMJHsmWt_eb8KzdcP5D43UNDK2UrQFAr0A" style=
+=3D"text-decoration:none"> <img alt=3D"Twitter" src=3D"https://www.gstatic.=
+com/alerts/images/tw-24.png" border=3D"0" height=3D"16" width=3D"16"></a> <=
+/td> <td style=3D"padding:0px 0px 6px 15px;font-family:Arial"> <a href=3D"h=
+ttps://www.google.co.kr/alerts/feedback?ffu=3Dhttps://slate.com/technology/=
+2026/05/ai-college-graduation-speakers-eric-schmidt.html&amp;source=3Dalert=
+smail&amp;hl=3Den&amp;gl=3DUS&amp;msgid=3DNzgyMzM4OTQwNjY1NDg4OTQ2NQ&amp;s=
+=3DAB2Xq4jyE4qeINhnw3821bwprduG4qXrrkrR5q4" style=3D"text-decoration:none;v=
+ertical-align:middle;color:#aaa;font-size:10px"> Flag as irrelevant </a> </=
+td> </tr> </table>  </div> </div> </td> <td style=3D"padding-right:18px"></=
+td> </tr>    <tr itemscope=3D"" itemtype=3D"http://schema.org/Article"> <td=
+ style=3D"padding-left:18px"></td> <td style=3D"padding:18px 0px 12px 0px;v=
+ertical-align:top;border-top:1px solid #e4e4e4;font-family:Arial"> <a></a> =
+<div>  <span style=3D"padding:0px 6px 0px 0px"> <a href=3D"https://www.goog=
+le.com/url?rct=3Dj&amp;sa=3Dt&amp;url=3Dhttps://fortune.com/2026/05/20/the-=
+sound-of-graduating-from-college-in-the-ai-summer-of-2026-boo/&amp;ct=3Dga&=
+amp;cd=3DCAEYAyoTNzgyMzM4OTQwNjY1NDg4OTQ2NTIeOGE3NjU0ODAwYjRlMTc5MDpjby5rcj=
+plbjpVUzpS&amp;usg=3DAOvVaw2lMs2ZksrN-PqJsRwWE3QW" itemprop=3D"url" style=
+=3D"color:#427fed;display:inline;text-decoration:none;font-size:16px;line-h=
+eight:20px"> <span itemprop=3D"name">The sound of graduating from college i=
+n the <b>AI</b> summer of <b>2026</b>: boo! | Fortune</span> </a> </span>  =
+<div> <div style=3D"padding:2px 0px 8px 0px"> <div itemprop=3D"publisher" i=
+temscope=3D"" itemtype=3D"http://schema.org/Organization" style=3D"color:#7=
+37373;font-size:12px"> <a style=3D"text-decoration:none;color:#737373"> <sp=
+an itemprop=3D"name">Fortune</span> </a> </div> <div itemprop=3D"descriptio=
+n" style=3D"color:#252525;padding:2px 0px 0px 0px;font-size:12px;line-heigh=
+t:18px">At several campuses, graduates have interrupted speakers with stadi=
+um-wide boos when the topic turned to <b>AI</b>. Recommended Video. Former =
+Google CEO Eric&nbsp;...</div> </div>   <table> <tr> <td width=3D"16" style=
+=3D"padding-right:6px"> <a href=3D"https://www.google.co.kr/alerts/share?hl=
+=3Den&amp;gl=3DUS&amp;ru=3Dhttps://fortune.com/2026/05/20/the-sound-of-grad=
+uating-from-college-in-the-ai-summer-of-2026-boo/&amp;ss=3Dfb&amp;rt=3DThe+=
+sound+of+graduating+from+college+in+the+AI+summer+of+2026:+boo!+%7C+Fortune=
+&amp;cd=3DKhM3ODIzMzg5NDA2NjU0ODg5NDY1Mh44YTc2NTQ4MDBiNGUxNzkwOmNvLmtyOmVuO=
+lVTOlI&amp;ssp=3DAMJHsmUjQ4fXaB8HE5fANRZhYYYSOCfQVA" style=3D"text-decorati=
+on:none"> <img alt=3D"Facebook" src=3D"https://www.gstatic.com/alerts/image=
+s/fb-24.png" border=3D"0" height=3D"16" width=3D"16"></a> </td> <td width=
+=3D"16" style=3D"padding-right:6px"> <a href=3D"https://www.google.co.kr/al=
+erts/share?hl=3Den&amp;gl=3DUS&amp;ru=3Dhttps://fortune.com/2026/05/20/the-=
+sound-of-graduating-from-college-in-the-ai-summer-of-2026-boo/&amp;ss=3Dtw&=
+amp;rt=3DThe+sound+of+graduating+from+college+in+the+AI+summer+of+2026:+boo=
+!+%7C+Fortune&amp;cd=3DKhM3ODIzMzg5NDA2NjU0ODg5NDY1Mh44YTc2NTQ4MDBiNGUxNzkw=
+OmNvLmtyOmVuOlVTOlI&amp;ssp=3DAMJHsmUjQ4fXaB8HE5fANRZhYYYSOCfQVA" style=3D"=
+text-decoration:none"> <img alt=3D"Twitter" src=3D"https://www.gstatic.com/=
+alerts/images/tw-24.png" border=3D"0" height=3D"16" width=3D"16"></a> </td>=
+ <td style=3D"padding:0px 0px 6px 15px;font-family:Arial"> <a href=3D"https=
+://www.google.co.kr/alerts/feedback?ffu=3Dhttps://fortune.com/2026/05/20/th=
+e-sound-of-graduating-from-college-in-the-ai-summer-of-2026-boo/&amp;source=
+=3Dalertsmail&amp;hl=3Den&amp;gl=3DUS&amp;msgid=3DNzgyMzM4OTQwNjY1NDg4OTQ2N=
+Q&amp;s=3DAB2Xq4jyE4qeINhnw3821bwprduG4qXrrkrR5q4" style=3D"text-decoration=
+:none;vertical-align:middle;color:#aaa;font-size:10px"> Flag as irrelevant =
+</a> </td> </tr> </table>  </div> </div> </td> <td style=3D"padding-right:1=
+8px"></td> </tr>    <tr itemscope=3D"" itemtype=3D"http://schema.org/Articl=
+e"> <td style=3D"padding-left:18px"></td> <td style=3D"padding:18px 0px 12p=
+x 0px;vertical-align:top;border-top:1px solid #e4e4e4;font-family:Arial"> <=
+a></a> <div>  <span style=3D"padding:0px 6px 0px 0px"> <a href=3D"https://w=
+ww.google.com/url?rct=3Dj&amp;sa=3Dt&amp;url=3Dhttps://www.nextgov.com/arti=
+ficial-intelligence/2026/05/anticipated-executive-order-could-give-nsa-role=
+-voluntary-ai-model-testing/413663/&amp;ct=3Dga&amp;cd=3DCAEYBCoTNzgyMzM4OT=
+QwNjY1NDg4OTQ2NTIeOGE3NjU0ODAwYjRlMTc5MDpjby5rcjplbjpVUzpS&amp;usg=3DAOvVaw=
+3sQZ5X_Hgja7jZ-5Wlmktq" itemprop=3D"url" style=3D"color:#427fed;display:inl=
+ine;text-decoration:none;font-size:16px;line-height:20px"> <span itemprop=
+=3D"name">Anticipated executive order could give NSA a role in voluntary <b=
+>AI</b> model testing - Nextgov/FCW</span> </a> </span>  <div> <div style=
+=3D"padding:2px 0px 8px 0px"> <div itemprop=3D"publisher" itemscope=3D"" it=
+emtype=3D"http://schema.org/Organization" style=3D"color:#737373;font-size:=
+12px"> <a style=3D"text-decoration:none;color:#737373"> <span itemprop=3D"n=
+ame">Nextgov/FCW</span> </a> </div> <div itemprop=3D"description" style=3D"=
+color:#252525;padding:2px 0px 0px 0px;font-size:12px;line-height:18px">... =
+<b>2026</b> Federal 100 &middot; sponsor content. Claude Mythos advances au=
+tonomous ... <b>artificial intelligence</b> models that could be used for h=
+acking and cyberdefense&nbsp;...</div> </div>   <table> <tr> <td width=3D"1=
+6" style=3D"padding-right:6px"> <a href=3D"https://www.google.co.kr/alerts/=
+share?hl=3Den&amp;gl=3DUS&amp;ru=3Dhttps://www.nextgov.com/artificial-intel=
+ligence/2026/05/anticipated-executive-order-could-give-nsa-role-voluntary-a=
+i-model-testing/413663/&amp;ss=3Dfb&amp;rt=3DAnticipated+executive+order+co=
+uld+give+NSA+a+role+in+voluntary+AI+model+testing+-+Nextgov/FCW&amp;cd=3DKh=
+M3ODIzMzg5NDA2NjU0ODg5NDY1Mh44YTc2NTQ4MDBiNGUxNzkwOmNvLmtyOmVuOlVTOlI&amp;s=
+sp=3DAMJHsmU-Ecc0OeZKA5i9ZWZSdDAAxbkY8w" style=3D"text-decoration:none"> <i=
+mg alt=3D"Facebook" src=3D"https://www.gstatic.com/alerts/images/fb-24.png"=
+ border=3D"0" height=3D"16" width=3D"16"></a> </td> <td width=3D"16" style=
+=3D"padding-right:6px"> <a href=3D"https://www.google.co.kr/alerts/share?hl=
+=3Den&amp;gl=3DUS&amp;ru=3Dhttps://www.nextgov.com/artificial-intelligence/=
+2026/05/anticipated-executive-order-could-give-nsa-role-voluntary-ai-model-=
+testing/413663/&amp;ss=3Dtw&amp;rt=3DAnticipated+executive+order+could+give=
++NSA+a+role+in+voluntary+AI+model+testing+-+Nextgov/FCW&amp;cd=3DKhM3ODIzMz=
+g5NDA2NjU0ODg5NDY1Mh44YTc2NTQ4MDBiNGUxNzkwOmNvLmtyOmVuOlVTOlI&amp;ssp=3DAMJ=
+HsmU-Ecc0OeZKA5i9ZWZSdDAAxbkY8w" style=3D"text-decoration:none"> <img alt=
+=3D"Twitter" src=3D"https://www.gstatic.com/alerts/images/tw-24.png" border=
+=3D"0" height=3D"16" width=3D"16"></a> </td> <td style=3D"padding:0px 0px 6=
+px 15px;font-family:Arial"> <a href=3D"https://www.google.co.kr/alerts/feed=
+back?ffu=3Dhttps://www.nextgov.com/artificial-intelligence/2026/05/anticipa=
+ted-executive-order-could-give-nsa-role-voluntary-ai-model-testing/413663/&=
+amp;source=3Dalertsmail&amp;hl=3Den&amp;gl=3DUS&amp;msgid=3DNzgyMzM4OTQwNjY=
+1NDg4OTQ2NQ&amp;s=3DAB2Xq4jyE4qeINhnw3821bwprduG4qXrrkrR5q4" style=3D"text-=
+decoration:none;vertical-align:middle;color:#aaa;font-size:10px"> Flag as i=
+rrelevant </a> </td> </tr> </table>  </div> </div> </td> <td style=3D"paddi=
+ng-right:18px"></td> </tr>    <tr itemscope=3D"" itemtype=3D"http://schema.=
+org/Article"> <td style=3D"padding-left:18px"></td> <td style=3D"padding:18=
+px 0px 12px 0px;vertical-align:top;border-top:1px solid #e4e4e4;font-family=
+:Arial"> <a href=3D"https://www.google.com/url?rct=3Dj&amp;sa=3Dt&amp;url=
+=3Dhttps://www.npr.org/2026/05/20/nx-s1-5822419/ai-colleges-commencement-bo=
+oing&amp;ct=3Dga&amp;cd=3DCAEYBSoTNzgyMzM4OTQwNjY1NDg4OTQ2NTIeOGE3NjU0ODAwY=
+jRlMTc5MDpjby5rcjplbjpVUzpS&amp;usg=3DAOvVaw1qpFSzbenu3vEcn_Vm5YQC" style=
+=3D"text-decoration:none"> <table align=3D"right" style=3D"display:inline;b=
+order-collapse:collapse"> <tr> <td style=3D"padding-left:18px"></td> <td he=
+ight=3D"100" width=3D"100" valign=3D"bottom" style=3D"padding:0px 0px 0px 0=
+px;background-repeat:no-repeat;text-align:center;background-image:url(https=
+://encrypted-tbn2.gstatic.com/images?q=3Dtbn:ANd9GcS1Nj4A01hPjKO9s3bdMJ0G1J=
+CzZt9Mk-ELMx9oKU5En2uEv1ZmhOHPZ6-O);border:1px solid #e4e4e4"> <link href=
+=3D"https://encrypted-tbn2.gstatic.com/images?q=3Dtbn:ANd9GcT2KdbIyNYuA7Dqi=
+2kMCdLXLUAsu2MT1JNtXxh_PYtRqHppSNEBqFkq4T_zDiA" itemprop=3D"image"> <!--[if=
+ gte mso 9]>
+       <v:image xmlns:v=3D"urn:schemas-microsoft-com:vml" id=3D"theImage"
+                style=3D'behavior: url(#default#VML);
+                       display:inline-block; position:absolute;
+                       height: 100px; width: 100px;
+                       top:0; left:0; border:0; z-index:1;' src=3D"https://=
+encrypted-tbn2.gstatic.com/images%3Fq%3Dtbn:ANd9GcS1Nj4A01hPjKO9s3bdMJ0G1JC=
+zZt9Mk-ELMx9oKU5En2uEv1ZmhOHPZ6-O"/>
+       <v:rect xmlns:v=3D"urn:schemas-microsoft-com:vml"
+               style=3D'behavior: url(#default#VML);
+                      display:inline-block;
+                      position: absolute; top: 82px; left: 0px;
+                      width:100px; border:0; z-index:2;' strokecolor=3D"non=
+e">
+       <v:fill opacity=3D"50%" color=3D"#000000"/>
+       <v:textbox style=3D"mso-fit-shape-to-text:t;
+                         mso-column-margin: 0pt;
+                         letter-spacing: 0.8px;"
+                         inset=3D"0pt,0pt,0pt,0pt">
+         <font size=3D"-1" color=3D"#ffffff"></font>
+       </v:textbox>
+       </v:rect>
+       <div style=3D"display: none">
+       <![endif]--> <div style=3D"color:#fff;font-size:9px;letter-spacing:0=
+.8px"> <div style=3D"padding:3px 0px 4px 4px;background:rgb(255,255,255);ba=
+ckground-color:rgba(0,0,0,0.5);width:96px"></div> </div> <!--[if gte mso 9]=
+></div><![endif]--> </td> </tr> </table> </a> <div>  <span style=3D"padding=
+:0px 6px 0px 0px"> <a href=3D"https://www.google.com/url?rct=3Dj&amp;sa=3Dt=
+&amp;url=3Dhttps://www.npr.org/2026/05/20/nx-s1-5822419/ai-colleges-commenc=
+ement-booing&amp;ct=3Dga&amp;cd=3DCAEYBSoTNzgyMzM4OTQwNjY1NDg4OTQ2NTIeOGE3N=
+jU0ODAwYjRlMTc5MDpjby5rcjplbjpVUzpS&amp;usg=3DAOvVaw1qpFSzbenu3vEcn_Vm5YQC"=
+ itemprop=3D"url" style=3D"color:#427fed;display:inline;text-decoration:non=
+e;font-size:16px;line-height:20px"> <span itemprop=3D"name">Advice for <b>2=
+026</b> commencement speakers: Don&#39;t bring up <b>AI</b> - NPR</span> </=
+a> </span>  <div> <div style=3D"padding:2px 0px 8px 0px"> <div itemprop=3D"=
+publisher" itemscope=3D"" itemtype=3D"http://schema.org/Organization" style=
+=3D"color:#737373;font-size:12px"> <a style=3D"text-decoration:none;color:#=
+737373"> <span itemprop=3D"name">NPR</span> </a> </div> <div itemprop=3D"de=
+scription" style=3D"color:#252525;padding:2px 0px 0px 0px;font-size:12px;li=
+ne-height:18px">Commencement speakers who bring up the sweeping changes tha=
+t <b>artificial intelligence</b> is driving are facing boos from the Class =
+of <b>2026</b>.</div> </div>   <table> <tr> <td width=3D"16" style=3D"paddi=
+ng-right:6px"> <a href=3D"https://www.google.co.kr/alerts/share?hl=3Den&amp=
+;gl=3DUS&amp;ru=3Dhttps://www.npr.org/2026/05/20/nx-s1-5822419/ai-colleges-=
+commencement-booing&amp;ss=3Dfb&amp;rt=3DAdvice+for+2026+commencement+speak=
+ers:+Don%27t+bring+up+AI+-+NPR&amp;cd=3DKhM3ODIzMzg5NDA2NjU0ODg5NDY1Mh44YTc=
+2NTQ4MDBiNGUxNzkwOmNvLmtyOmVuOlVTOlI&amp;ssp=3DAMJHsmXR_e4Z_WzslNyLX32LDwu2=
+2QzH5Q" style=3D"text-decoration:none"> <img alt=3D"Facebook" src=3D"https:=
+//www.gstatic.com/alerts/images/fb-24.png" border=3D"0" height=3D"16" width=
+=3D"16"></a> </td> <td width=3D"16" style=3D"padding-right:6px"> <a href=3D=
+"https://www.google.co.kr/alerts/share?hl=3Den&amp;gl=3DUS&amp;ru=3Dhttps:/=
+/www.npr.org/2026/05/20/nx-s1-5822419/ai-colleges-commencement-booing&amp;s=
+s=3Dtw&amp;rt=3DAdvice+for+2026+commencement+speakers:+Don%27t+bring+up+AI+=
+-+NPR&amp;cd=3DKhM3ODIzMzg5NDA2NjU0ODg5NDY1Mh44YTc2NTQ4MDBiNGUxNzkwOmNvLmty=
+OmVuOlVTOlI&amp;ssp=3DAMJHsmXR_e4Z_WzslNyLX32LDwu22QzH5Q" style=3D"text-dec=
+oration:none"> <img alt=3D"Twitter" src=3D"https://www.gstatic.com/alerts/i=
+mages/tw-24.png" border=3D"0" height=3D"16" width=3D"16"></a> </td> <td sty=
+le=3D"padding:0px 0px 6px 15px;font-family:Arial"> <a href=3D"https://www.g=
+oogle.co.kr/alerts/feedback?ffu=3Dhttps://www.npr.org/2026/05/20/nx-s1-5822=
+419/ai-colleges-commencement-booing&amp;source=3Dalertsmail&amp;hl=3Den&amp=
+;gl=3DUS&amp;msgid=3DNzgyMzM4OTQwNjY1NDg4OTQ2NQ&amp;s=3DAB2Xq4jyE4qeINhnw38=
+21bwprduG4qXrrkrR5q4" style=3D"text-decoration:none;vertical-align:middle;c=
+olor:#aaa;font-size:10px"> Flag as irrelevant </a> </td> </tr> </table>  </=
+div> </div> </td> <td style=3D"padding-right:18px"></td> </tr>    <tr items=
+cope=3D"" itemtype=3D"http://schema.org/Article"> <td style=3D"padding-left=
+:18px"></td> <td style=3D"padding:18px 0px 12px 0px;vertical-align:top;bord=
+er-top:1px solid #e4e4e4;font-family:Arial"> <a></a> <div>  <span style=3D"=
+padding:0px 6px 0px 0px"> <a href=3D"https://www.google.com/url?rct=3Dj&amp=
+;sa=3Dt&amp;url=3Dhttps://www.insidehighered.com/news/tech-innovation/artif=
+icial-intelligence/2026/05/21/specter-ai-haunts-class-2026&amp;ct=3Dga&amp;=
+cd=3DCAEYBioTNzgyMzM4OTQwNjY1NDg4OTQ2NTIeOGE3NjU0ODAwYjRlMTc5MDpjby5rcjplbj=
+pVUzpS&amp;usg=3DAOvVaw3rZWWzQTwjPJhXrIopxI7-" itemprop=3D"url" style=3D"co=
+lor:#427fed;display:inline;text-decoration:none;font-size:16px;line-height:=
+20px"> <span itemprop=3D"name">Specter of <b>AI</b> Haunts Class of <b>2026=
+</b> - Inside Higher Ed</span> </a> </span>  <div> <div style=3D"padding:2p=
+x 0px 8px 0px"> <div itemprop=3D"publisher" itemscope=3D"" itemtype=3D"http=
+://schema.org/Organization" style=3D"color:#737373;font-size:12px"> <a styl=
+e=3D"text-decoration:none;color:#737373"> <span itemprop=3D"name">Inside Hi=
+gher Ed</span> </a> </div> <div itemprop=3D"description" style=3D"color:#25=
+2525;padding:2px 0px 0px 0px;font-size:12px;line-height:18px">Simmering stu=
+dent fear and anxiety over how <b>artificial intelligence</b> is rapidly re=
+shaping the job market=E2=80=94and humanity=E2=80=94came to a boiling point=
+&nbsp;...</div> </div>   <table> <tr> <td width=3D"16" style=3D"padding-rig=
+ht:6px"> <a href=3D"https://www.google.co.kr/alerts/share?hl=3Den&amp;gl=3D=
+US&amp;ru=3Dhttps://www.insidehighered.com/news/tech-innovation/artificial-=
+intelligence/2026/05/21/specter-ai-haunts-class-2026&amp;ss=3Dfb&amp;rt=3DS=
+pecter+of+AI+Haunts+Class+of+2026+-+Inside+Higher+Ed&amp;cd=3DKhM3ODIzMzg5N=
+DA2NjU0ODg5NDY1Mh44YTc2NTQ4MDBiNGUxNzkwOmNvLmtyOmVuOlVTOlI&amp;ssp=3DAMJHsm=
+WPByG7Ni6FNdrT5l4m_8l5MYrMMw" style=3D"text-decoration:none"> <img alt=3D"F=
+acebook" src=3D"https://www.gstatic.com/alerts/images/fb-24.png" border=3D"=
+0" height=3D"16" width=3D"16"></a> </td> <td width=3D"16" style=3D"padding-=
+right:6px"> <a href=3D"https://www.google.co.kr/alerts/share?hl=3Den&amp;gl=
+=3DUS&amp;ru=3Dhttps://www.insidehighered.com/news/tech-innovation/artifici=
+al-intelligence/2026/05/21/specter-ai-haunts-class-2026&amp;ss=3Dtw&amp;rt=
+=3DSpecter+of+AI+Haunts+Class+of+2026+-+Inside+Higher+Ed&amp;cd=3DKhM3ODIzM=
+zg5NDA2NjU0ODg5NDY1Mh44YTc2NTQ4MDBiNGUxNzkwOmNvLmtyOmVuOlVTOlI&amp;ssp=3DAM=
+JHsmWPByG7Ni6FNdrT5l4m_8l5MYrMMw" style=3D"text-decoration:none"> <img alt=
+=3D"Twitter" src=3D"https://www.gstatic.com/alerts/images/tw-24.png" border=
+=3D"0" height=3D"16" width=3D"16"></a> </td> <td style=3D"padding:0px 0px 6=
+px 15px;font-family:Arial"> <a href=3D"https://www.google.co.kr/alerts/feed=
+back?ffu=3Dhttps://www.insidehighered.com/news/tech-innovation/artificial-i=
+ntelligence/2026/05/21/specter-ai-haunts-class-2026&amp;source=3Dalertsmail=
+&amp;hl=3Den&amp;gl=3DUS&amp;msgid=3DNzgyMzM4OTQwNjY1NDg4OTQ2NQ&amp;s=3DAB2=
+Xq4jyE4qeINhnw3821bwprduG4qXrrkrR5q4" style=3D"text-decoration:none;vertica=
+l-align:middle;color:#aaa;font-size:10px"> Flag as irrelevant </a> </td> </=
+tr> </table>  </div> </div> </td> <td style=3D"padding-right:18px"></td> </=
+tr>    <tr itemscope=3D"" itemtype=3D"http://schema.org/Article"> <td style=
+=3D"padding-left:18px"></td> <td style=3D"padding:18px 0px 12px 0px;vertica=
+l-align:top;border-top:1px solid #e4e4e4;font-family:Arial"> <a></a> <div> =
+ <span style=3D"padding:0px 6px 0px 0px"> <a href=3D"https://www.google.com=
+/url?rct=3Dj&amp;sa=3Dt&amp;url=3Dhttps://www.washingtonpost.com/wp-intelli=
+gence/ai-tech-brief/2026/05/20/ai-tech-brief-googles-ai-operating-system/&a=
+mp;ct=3Dga&amp;cd=3DCAEYByoTNzgyMzM4OTQwNjY1NDg4OTQ2NTIeOGE3NjU0ODAwYjRlMTc=
+5MDpjby5rcjplbjpVUzpS&amp;usg=3DAOvVaw0yezxmN1cD0yL706VrXrYb" itemprop=3D"u=
+rl" style=3D"color:#427fed;display:inline;text-decoration:none;font-size:16=
+px;line-height:20px"> <span itemprop=3D"name"><b>AI</b> &amp; Tech Brief: E=
+xclusive | White House <b>AI</b> order expected - The Washington Post</span=
+> </a> </span>  <div> <div style=3D"padding:2px 0px 8px 0px"> <div itemprop=
+=3D"publisher" itemscope=3D"" itemtype=3D"http://schema.org/Organization" s=
+tyle=3D"color:#737373;font-size:12px"> <a style=3D"text-decoration:none;col=
+or:#737373"> <span itemprop=3D"name">The Washington Post</span> </a> </div>=
+ <div itemprop=3D"description" style=3D"color:#252525;padding:2px 0px 0px 0=
+px;font-size:12px;line-height:18px">Google&#39;s <b>AI</b> ecosystem bet. G=
+oogle unveiled a series of new products and <b>AI</b> initiatives Tuesday a=
+t Google I/O <b>2026</b>, the company&#39;s annual developer&nbsp;...</div>=
+ </div>   <table> <tr> <td width=3D"16" style=3D"padding-right:6px"> <a hre=
+f=3D"https://www.google.co.kr/alerts/share?hl=3Den&amp;gl=3DUS&amp;ru=3Dhtt=
+ps://www.washingtonpost.com/wp-intelligence/ai-tech-brief/2026/05/20/ai-tec=
+h-brief-googles-ai-operating-system/&amp;ss=3Dfb&amp;rt=3DAI+%26+Tech+Brief=
+:+Exclusive+%7C+White+House+AI+order+expected+-+The+Washington+Post&amp;cd=
+=3DKhM3ODIzMzg5NDA2NjU0ODg5NDY1Mh44YTc2NTQ4MDBiNGUxNzkwOmNvLmtyOmVuOlVTOlI&=
+amp;ssp=3DAMJHsmWcq8jE47hwSb6VAHkdvj4i1iM0WA" style=3D"text-decoration:none=
+"> <img alt=3D"Facebook" src=3D"https://www.gstatic.com/alerts/images/fb-24=
+.png" border=3D"0" height=3D"16" width=3D"16"></a> </td> <td width=3D"16" s=
+tyle=3D"padding-right:6px"> <a href=3D"https://www.google.co.kr/alerts/shar=
+e?hl=3Den&amp;gl=3DUS&amp;ru=3Dhttps://www.washingtonpost.com/wp-intelligen=
+ce/ai-tech-brief/2026/05/20/ai-tech-brief-googles-ai-operating-system/&amp;=
+ss=3Dtw&amp;rt=3DAI+%26+Tech+Brief:+Exclusive+%7C+White+House+AI+order+expe=
+cted+-+The+Washington+Post&amp;cd=3DKhM3ODIzMzg5NDA2NjU0ODg5NDY1Mh44YTc2NTQ=
+4MDBiNGUxNzkwOmNvLmtyOmVuOlVTOlI&amp;ssp=3DAMJHsmWcq8jE47hwSb6VAHkdvj4i1iM0=
+WA" style=3D"text-decoration:none"> <img alt=3D"Twitter" src=3D"https://www=
+.gstatic.com/alerts/images/tw-24.png" border=3D"0" height=3D"16" width=3D"1=
+6"></a> </td> <td style=3D"padding:0px 0px 6px 15px;font-family:Arial"> <a =
+href=3D"https://www.google.co.kr/alerts/feedback?ffu=3Dhttps://www.washingt=
+onpost.com/wp-intelligence/ai-tech-brief/2026/05/20/ai-tech-brief-googles-a=
+i-operating-system/&amp;source=3Dalertsmail&amp;hl=3Den&amp;gl=3DUS&amp;msg=
+id=3DNzgyMzM4OTQwNjY1NDg4OTQ2NQ&amp;s=3DAB2Xq4jyE4qeINhnw3821bwprduG4qXrrkr=
+R5q4" style=3D"text-decoration:none;vertical-align:middle;color:#aaa;font-s=
+ize:10px"> Flag as irrelevant </a> </td> </tr> </table>  </div> </div> </td=
+> <td style=3D"padding-right:18px"></td> </tr>    <tr itemscope=3D"" itemty=
+pe=3D"http://schema.org/Article"> <td style=3D"padding-left:18px"></td> <td=
+ style=3D"padding:18px 0px 12px 0px;vertical-align:top;border-top:1px solid=
+ #e4e4e4;font-family:Arial"> <a></a> <div>  <span style=3D"padding:0px 6px =
+0px 0px"> <a href=3D"https://www.google.com/url?rct=3Dj&amp;sa=3Dt&amp;url=
+=3Dhttps://time.com/article/2026/05/20/google-search-ai-internet/&amp;ct=3D=
+ga&amp;cd=3DCAEYCCoTNzgyMzM4OTQwNjY1NDg4OTQ2NTIeOGE3NjU0ODAwYjRlMTc5MDpjby5=
+rcjplbjpVUzpS&amp;usg=3DAOvVaw1ZsuDyV_z2BBWQWt88iyqJ" itemprop=3D"url" styl=
+e=3D"color:#427fed;display:inline;text-decoration:none;font-size:16px;line-=
+height:20px"> <span itemprop=3D"name">Google Shifts to <b>AI</b> Search, He=
+ralding Major Change in How People Use the Internet - TIME</span> </a> </sp=
+an>  <div> <div style=3D"padding:2px 0px 8px 0px"> <div itemprop=3D"publish=
+er" itemscope=3D"" itemtype=3D"http://schema.org/Organization" style=3D"col=
+or:#737373;font-size:12px"> <a style=3D"text-decoration:none;color:#737373"=
+> <span itemprop=3D"name">TIME</span> </a> </div> <div itemprop=3D"descript=
+ion" style=3D"color:#252525;padding:2px 0px 0px 0px;font-size:12px;line-hei=
+ght:18px">... <b>2026</b>, with a focus on <b>AI</b> infrastructure and chi=
+ps, according to Pichai. Advertisement. In its last quarter, Google reporte=
+d that its advertising&nbsp;...</div> </div>   <table> <tr> <td width=3D"16=
+" style=3D"padding-right:6px"> <a href=3D"https://www.google.co.kr/alerts/s=
+hare?hl=3Den&amp;gl=3DUS&amp;ru=3Dhttps://time.com/article/2026/05/20/googl=
+e-search-ai-internet/&amp;ss=3Dfb&amp;rt=3DGoogle+Shifts+to+AI+Search,+Hera=
+lding+Major+Change+in+How+People+Use+the+Internet+-+TIME&amp;cd=3DKhM3ODIzM=
+zg5NDA2NjU0ODg5NDY1Mh44YTc2NTQ4MDBiNGUxNzkwOmNvLmtyOmVuOlVTOlI&amp;ssp=3DAM=
+JHsmUnwfVK1BXDScT7USdL6vFAZAinIA" style=3D"text-decoration:none"> <img alt=
+=3D"Facebook" src=3D"https://www.gstatic.com/alerts/images/fb-24.png" borde=
+r=3D"0" height=3D"16" width=3D"16"></a> </td> <td width=3D"16" style=3D"pad=
+ding-right:6px"> <a href=3D"https://www.google.co.kr/alerts/share?hl=3Den&a=
+mp;gl=3DUS&amp;ru=3Dhttps://time.com/article/2026/05/20/google-search-ai-in=
+ternet/&amp;ss=3Dtw&amp;rt=3DGoogle+Shifts+to+AI+Search,+Heralding+Major+Ch=
+ange+in+How+People+Use+the+Internet+-+TIME&amp;cd=3DKhM3ODIzMzg5NDA2NjU0ODg=
+5NDY1Mh44YTc2NTQ4MDBiNGUxNzkwOmNvLmtyOmVuOlVTOlI&amp;ssp=3DAMJHsmUnwfVK1BXD=
+ScT7USdL6vFAZAinIA" style=3D"text-decoration:none"> <img alt=3D"Twitter" sr=
+c=3D"https://www.gstatic.com/alerts/images/tw-24.png" border=3D"0" height=
+=3D"16" width=3D"16"></a> </td> <td style=3D"padding:0px 0px 6px 15px;font-=
+family:Arial"> <a href=3D"https://www.google.co.kr/alerts/feedback?ffu=3Dht=
+tps://time.com/article/2026/05/20/google-search-ai-internet/&amp;source=3Da=
+lertsmail&amp;hl=3Den&amp;gl=3DUS&amp;msgid=3DNzgyMzM4OTQwNjY1NDg4OTQ2NQ&am=
+p;s=3DAB2Xq4jyE4qeINhnw3821bwprduG4qXrrkrR5q4" style=3D"text-decoration:non=
+e;vertical-align:middle;color:#aaa;font-size:10px"> Flag as irrelevant </a>=
+ </td> </tr> </table>  </div> </div> </td> <td style=3D"padding-right:18px"=
+></td> </tr>    <tr itemscope=3D"" itemtype=3D"http://schema.org/Article"> =
+<td style=3D"padding-left:18px"></td> <td style=3D"padding:18px 0px 12px 0p=
+x;vertical-align:top;border-top:1px solid #e4e4e4;font-family:Arial"> <a></=
+a> <div>  <span style=3D"padding:0px 6px 0px 0px"> <a href=3D"https://www.g=
+oogle.com/url?rct=3Dj&amp;sa=3Dt&amp;url=3Dhttps://www.economist.com/busine=
+ss/2026/05/20/google-is-dethroning-openai-as-the-king-of-consumer-ai&amp;ct=
+=3Dga&amp;cd=3DCAEYCSoTNzgyMzM4OTQwNjY1NDg4OTQ2NTIeOGE3NjU0ODAwYjRlMTc5MDpj=
+by5rcjplbjpVUzpS&amp;usg=3DAOvVaw1WIQxf5motXU0GU0tAno4g" itemprop=3D"url" s=
+tyle=3D"color:#427fed;display:inline;text-decoration:none;font-size:16px;li=
+ne-height:20px"> <span itemprop=3D"name">Google is dethroning OpenAI as the=
+ king of consumer <b>AI</b> - The Economist</span> </a> </span>  <div> <div=
+ style=3D"padding:2px 0px 8px 0px"> <div itemprop=3D"publisher" itemscope=
+=3D"" itemtype=3D"http://schema.org/Organization" style=3D"color:#737373;fo=
+nt-size:12px"> <a style=3D"text-decoration:none;color:#737373"> <span itemp=
+rop=3D"name">The Economist</span> </a> </div> <div itemprop=3D"description"=
+ style=3D"color:#252525;padding:2px 0px 0px 0px;font-size:12px;line-height:=
+18px">But when it comes to <b>artificial intelligence</b>, Google long ago =
+... Models walk the runway during the Chanel Cruise <b>2026</b>/27 on April=
+ 28, <b>2026</b>&nbsp;...</div> </div>   <table> <tr> <td width=3D"16" styl=
+e=3D"padding-right:6px"> <a href=3D"https://www.google.co.kr/alerts/share?h=
+l=3Den&amp;gl=3DUS&amp;ru=3Dhttps://www.economist.com/business/2026/05/20/g=
+oogle-is-dethroning-openai-as-the-king-of-consumer-ai&amp;ss=3Dfb&amp;rt=3D=
+Google+is+dethroning+OpenAI+as+the+king+of+consumer+AI+-+The+Economist&amp;=
+cd=3DKhM3ODIzMzg5NDA2NjU0ODg5NDY1Mh44YTc2NTQ4MDBiNGUxNzkwOmNvLmtyOmVuOlVTOl=
+I&amp;ssp=3DAMJHsmWvfESWCVxwu4kCQk0kUq74qMqyHQ" style=3D"text-decoration:no=
+ne"> <img alt=3D"Facebook" src=3D"https://www.gstatic.com/alerts/images/fb-=
+24.png" border=3D"0" height=3D"16" width=3D"16"></a> </td> <td width=3D"16"=
+ style=3D"padding-right:6px"> <a href=3D"https://www.google.co.kr/alerts/sh=
+are?hl=3Den&amp;gl=3DUS&amp;ru=3Dhttps://www.economist.com/business/2026/05=
+/20/google-is-dethroning-openai-as-the-king-of-consumer-ai&amp;ss=3Dtw&amp;=
+rt=3DGoogle+is+dethroning+OpenAI+as+the+king+of+consumer+AI+-+The+Economist=
+&amp;cd=3DKhM3ODIzMzg5NDA2NjU0ODg5NDY1Mh44YTc2NTQ4MDBiNGUxNzkwOmNvLmtyOmVuO=
+lVTOlI&amp;ssp=3DAMJHsmWvfESWCVxwu4kCQk0kUq74qMqyHQ" style=3D"text-decorati=
+on:none"> <img alt=3D"Twitter" src=3D"https://www.gstatic.com/alerts/images=
+/tw-24.png" border=3D"0" height=3D"16" width=3D"16"></a> </td> <td style=3D=
+"padding:0px 0px 6px 15px;font-family:Arial"> <a href=3D"https://www.google=
+.co.kr/alerts/feedback?ffu=3Dhttps://www.economist.com/business/2026/05/20/=
+google-is-dethroning-openai-as-the-king-of-consumer-ai&amp;source=3Dalertsm=
+ail&amp;hl=3Den&amp;gl=3DUS&amp;msgid=3DNzgyMzM4OTQwNjY1NDg4OTQ2NQ&amp;s=3D=
+AB2Xq4jyE4qeINhnw3821bwprduG4qXrrkrR5q4" style=3D"text-decoration:none;vert=
+ical-align:middle;color:#aaa;font-size:10px"> Flag as irrelevant </a> </td>=
+ </tr> </table>  </div> </div> </td> <td style=3D"padding-right:18px"></td>=
+ </tr>    <tr> <td colspan=3D"3" valign=3D"middle" style=3D"background-colo=
+r:#f8f8f8;font-size:14px;vertical-align:middle;text-align:center;padding:10=
+px 10px 10px 10px;line-height:20px;border:1px solid #e4e4e4;font-family:Ari=
+al"> <a href=3D"https://www.google.co.kr/alerts?s=3DAB2Xq4jyE4qeINhnw3821bw=
+prduG4qXrrkrR5q4&amp;start=3D1779332417&amp;end=3D1779424732&amp;source=3Da=
+lertsmail&amp;hl=3Den&amp;gl=3DUS&amp;msgid=3DNzgyMzM4OTQwNjY1NDg4OTQ2NQ#hi=
+story" style=3D"text-decoration:none;vertical-align:middle;color:#427fed"> =
+ See more results  </a> <span style=3D"font-size:12px;padding-left:15px;pad=
+ding-right:15px;color:#aaa">|</span> <a href=3D"https://www.google.co.kr/al=
+erts/edit?source=3Dalertsmail&amp;hl=3Den&amp;gl=3DUS&amp;msgid=3DNzgyMzM4O=
+TQwNjY1NDg4OTQ2NQ&amp;s=3DAB2Xq4jyE4qeINhnw3821bwprduG4qXrrkrR5q4&amp;email=
+=3Dcbssmh%40gmail.com" style=3D"text-decoration:none;vertical-align:middle;=
+color:#427fed">Edit this alert</a>  </td> </tr>  </table> <table style=3D"p=
+adding-top:6px;font-size:12px;color:#252525;text-align:center;width:100%"> =
+<tr> <td style=3D"font-family:Arial">  You have received this email because=
+ you have subscribed to <b>Google Alerts</b>. <div> <a href=3D"https://www.=
+google.co.kr/alerts/remove?source=3Dalertsmail&amp;hl=3Den&amp;gl=3DUS&amp;=
+msgid=3DNzgyMzM4OTQwNjY1NDg4OTQ2NQ&amp;s=3DAB2Xq4jyE4qeINhnw3821bwprduG4qXr=
+rkrR5q4" style=3D"text-decoration:none;color:#427fed">Unsubscribe</a> <span=
+ style=3D"padding:0px 4px 0px 4px;color:#252525">|</span> <a href=3D"https:=
+//www.google.co.kr/alerts?source=3Dalertsmail&amp;hl=3Den&amp;gl=3DUS&amp;m=
+sgid=3DNzgyMzM4OTQwNjY1NDg4OTQ2NQ" style=3D"text-decoration:none;color:#427=
+fed">  View all your alerts  </a> </div> </td> </tr> <tr> <td style=3D"padd=
+ing:6px 10px 0px 0px;font-family:Arial"> <a href=3D"https://www.google.com/=
+alerts/feeds/11972611623025243243/11711507769510584937" style=3D"text-decor=
+ation:none;color:#427fed"> <img src=3D"https://www.gstatic.com/alerts/image=
+s/rss-16.gif" alt=3D"RSS" border=3D"0" style=3D"padding:0px 8px 0px 0px;ver=
+tical-align:middle"> <span style=3D"display:inline;line-height:16px;vertica=
+l-align:middle"> Receive this alert as RSS feed </span> </a> </td> </tr> <t=
+r> <td style=3D"padding:6px 0px 0px 0px;font-family:Arial"> <a href=3D"http=
+s://www.google.co.kr/alerts?source=3Dalertsmail&amp;hl=3Den&amp;gl=3DUS&amp=
+;msgid=3DNzgyMzM4OTQwNjY1NDg4OTQ2NQ&amp;s=3DAB2Xq4jyE4qeINhnw3821bwprduG4qX=
+rrkrR5q4&amp;ffu=3D" style=3D"text-decoration:none;color:#427fed"> <div sty=
+le=3D"display:inline;line-height:16px;vertical-align:middle"> Send Feedback=
+ </div> </a> </td> </tr> </table> </div> </div> <!--[if mso]>
+</td></tr></table>
+<![endif]-->  </div>  </body> </html>
+--000000000000192c810652609b66--
