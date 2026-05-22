@@ -58,3 +58,16 @@ def test_parse_google_alerts_email_skips_links_whose_text_is_only_a_url() -> Non
     articles = parse_google_alerts_email(html)
 
     assert articles == []
+
+
+def test_parse_google_alerts_email_extracts_source_from_title_text() -> None:
+    html = """
+    <a href="https://blog.google/article">
+      100 things we announced at I/O 2026 - Google Blog
+    </a>
+    """
+
+    articles = parse_google_alerts_email(html)
+
+    assert articles[0].title == "100 things we announced at I/O 2026"
+    assert articles[0].source == "Google Blog"

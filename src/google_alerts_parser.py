@@ -31,8 +31,9 @@ def parse_google_alerts_email(html: str) -> list[Article]:
         if normalized_url in seen_urls:
             continue
 
+        title, source = _split_title_and_source(title)
         seen_urls.add(normalized_url)
-        articles.append(Article(title=title, source="", url=normalized_url, snippet=""))
+        articles.append(Article(title=title, source=source, url=normalized_url, snippet=""))
 
     return articles
 
@@ -74,3 +75,11 @@ def _is_skippable_link(href: str, title: str) -> bool:
 def _is_url_text_only(text: str) -> bool:
     parsed = urlparse(text.strip())
     return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _split_title_and_source(text: str) -> tuple[str, str]:
+    title, separator, source = text.rpartition(" - ")
+    if not separator:
+        return text, ""
+
+    return title, source
