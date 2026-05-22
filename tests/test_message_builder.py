@@ -48,6 +48,16 @@ def test_message_uses_korean_labels() -> None:
     assert "커리어 / 시장 인사이트:" in message
 
 
+def test_message_can_hide_summary() -> None:
+    article = make_article()
+
+    message = build_telegram_message([article], show_summary=False)
+
+    assert "요약:" not in message
+    assert article.korean_summary not in message
+    assert "커리어 / 시장 인사이트:" in message
+
+
 def test_multiple_articles_are_numbered() -> None:
     message = build_telegram_message(
         [

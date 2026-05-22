@@ -105,7 +105,7 @@ def test_successful_pipeline_sends_telegram_and_saves_dedup(monkeypatch) -> None
     monkeypatch.setattr(
         main_module,
         "build_telegram_message",
-        lambda articles, header="Daily AI Curated News Top 3": "telegram message",
+        lambda articles, header="Daily AI Curated News Top 3", show_summary=True: "telegram message",
     )
 
     sent_messages = []
@@ -144,7 +144,7 @@ def test_failed_telegram_send_does_not_mark_processed_urls(monkeypatch) -> None:
     monkeypatch.setattr(
         main_module,
         "build_telegram_message",
-        lambda articles, header="Daily AI Curated News Top 3": "telegram message",
+        lambda articles, header="Daily AI Curated News Top 3", show_summary=True: "telegram message",
     )
     monkeypatch.setattr(main_module, "send_telegram_message", lambda *args: False)
 
@@ -186,10 +186,16 @@ def test_missing_openai_api_key_uses_rule_based_selector(monkeypatch) -> None:
 
     built_articles = []
     message_headers = []
+    show_summary_values = []
 
-    def fake_build_telegram_message(curated_articles, header="Daily AI Curated News Top 3"):
+    def fake_build_telegram_message(
+        curated_articles,
+        header="Daily AI Curated News Top 3",
+        show_summary=True,
+    ):
         built_articles.extend(curated_articles)
         message_headers.append(header)
+        show_summary_values.append(show_summary)
         return "telegram message"
 
     monkeypatch.setattr(
@@ -204,6 +210,7 @@ def test_missing_openai_api_key_uses_rule_based_selector(monkeypatch) -> None:
     assert openai_called is False
     assert len(built_articles) == 1
     assert message_headers == ["Daily High-Signal Tech Alerts"]
+    assert show_summary_values == [False]
     assert built_articles[0].relevance_score >= 5
     assert "AI 인프라" in built_articles[0].why_selected
     assert built_articles[0].korean_summary != articles[0].title

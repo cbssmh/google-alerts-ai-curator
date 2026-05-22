@@ -50,15 +50,21 @@ def main() -> None:
     if openai_api_key:
         curated_articles = curate_articles(new_articles, openai_api_key)
         message_header = "Daily AI Curated News Top 3"
+        show_summary = True
     else:
         curated_articles = select_high_signal_articles(new_articles)
         message_header = "Daily High-Signal Tech Alerts"
+        show_summary = False
 
     if not curated_articles:
         print("No high-signal articles selected.")
         return
 
-    message = build_telegram_message(curated_articles, header=message_header)
+    message = build_telegram_message(
+        curated_articles,
+        header=message_header,
+        show_summary=show_summary,
+    )
     if not message:
         print("No Telegram message generated.")
         return
