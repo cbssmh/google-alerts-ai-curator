@@ -48,10 +48,10 @@ def test_high_signal_infrastructure_article_is_selected() -> None:
     assert "데이터센터" in selected[0].career_market_insight
 
 
-def test_generic_jobs_article_is_not_prioritized() -> None:
+def test_generic_jobs_fear_article_is_not_prioritized() -> None:
     articles = [
         make_article(
-            "AI restructuring changes software jobs and hiring plans",
+            "AI will take your job and trigger jobs panic",
             source="Reuters",
         )
     ]
@@ -111,3 +111,67 @@ def test_limit_3() -> None:
     selected = select_high_signal_articles(articles, limit=3)
 
     assert len(selected) == 3
+
+
+def test_google_shifts_to_ai_search_is_selected() -> None:
+    articles = [
+        make_article(
+            "Google Shifts to AI Search, Heralding Major Change in How People Use the Internet",
+            source="TIME",
+        )
+    ]
+
+    selected = select_high_signal_articles(articles)
+
+    assert len(selected) == 1
+    assert "AI Interface Shift" in selected[0].why_selected
+
+
+def test_white_house_ai_order_is_selected() -> None:
+    articles = [
+        make_article(
+            "AI & Tech Brief: Exclusive | White House AI order expected",
+            source="The Washington Post",
+        )
+    ]
+
+    selected = select_high_signal_articles(articles)
+
+    assert len(selected) == 1
+    assert "Government / Regulation" in selected[0].why_selected
+
+
+def test_dethroning_openai_article_is_selected() -> None:
+    articles = [
+        make_article(
+            "Google is dethroning OpenAI as the king of consumer AI",
+            source="The Economist",
+        )
+    ]
+
+    selected = select_high_signal_articles(articles)
+
+    assert len(selected) == 1
+    assert "Ecosystem Competition" in selected[0].why_selected
+
+
+def test_generic_graduation_booing_does_not_outrank_market_shift_articles() -> None:
+    articles = [
+        make_article(
+            "Students boo AI speaker at graduation ceremony",
+            source="Unknown Blog",
+        ),
+        make_article(
+            "Google Shifts to AI Search, Heralding Major Change in How People Use the Internet",
+            source="TIME",
+        ),
+        make_article(
+            "AI & Tech Brief: Exclusive | White House AI order expected",
+            source="The Washington Post",
+        ),
+    ]
+
+    selected = select_high_signal_articles(articles)
+
+    assert all("graduation" not in article.title.lower() for article in selected)
+    assert selected[0].title.startswith("AI & Tech Brief") or selected[0].title.startswith("Google Shifts")

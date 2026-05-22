@@ -8,6 +8,9 @@ SOURCE_SCORES = {
     "wall street journal": 4,
     "the information": 4,
     "new york times": 4,
+    "the economist": 4,
+    "time": 3,
+    "the washington post": 3,
     "google blog": 3,
     "openai blog": 3,
     "anthropic blog": 3,
@@ -18,6 +21,19 @@ SOURCE_SCORES = {
     "wired": 2,
     "mit technology review": 2,
 }
+
+TITLE_BOOSTS = (
+    ("AI search", 5, "interface_shift"),
+    ("AI order", 5, "regulation"),
+    ("executive order", 5, "regulation"),
+    ("White House", 5, "regulation"),
+    ("dethroning OpenAI", 5, "ecosystem_competition"),
+    ("Google I/O", 4, "platform_shift"),
+    ("ecosystem", 4, "ecosystem_competition"),
+    ("operating system", 4, "platform_shift"),
+    ("infrastructure", 4, "infrastructure"),
+    ("chips", 4, "semiconductor"),
+)
 
 SIGNAL_CATEGORIES = [
     (
@@ -93,7 +109,7 @@ SIGNAL_CATEGORIES = [
     (
         "semiconductor",
         4,
-        ("semiconductor", "chip", "foundry", "tsmc", "samsung", "sk hynix", "memory"),
+        ("semiconductor", "chip", "chips", "foundry", "tsmc", "samsung", "sk hynix", "memory"),
         "Semiconductor Race",
         "반도체 경쟁은 AI 성능, 비용 구조, 공급망 협상력의 핵심 변수가 되고 있습니다.",
     ),
@@ -119,7 +135,7 @@ LOW_VALUE_PATTERNS = (
     (("top 10", "things you need to know"), -2),
     (("fear", "scary", "terrifying", "anxiety", "emotional reaction"), -3),
     (("culture war", "backlash", "outrage", "panic"), -3),
-    (("jobs", "hiring", "layoffs", "workforce", "restructuring"), -1),
+    (("ai will take your job", "ai replacing jobs", "jobs panic"), -2),
 )
 
 
@@ -130,7 +146,7 @@ def select_high_signal_articles(
     scored_articles = []
     for article in articles:
         score, source_name, signals = _score_article(article)
-        if score >= 5:
+        if score >= 4:
             scored_articles.append((score, article, source_name, signals))
 
     scored_articles.sort(key=lambda item: item[0], reverse=True)
@@ -155,6 +171,12 @@ def _score_article(article: Article) -> tuple[int, str, list[str]]:
     score = 0
     matched_source = ""
     matched_signals = []
+
+    for title_pattern, points, category in TITLE_BOOSTS:
+        if title_pattern.lower() in article.title.lower():
+            score += points
+            if category not in matched_signals:
+                matched_signals.append(category)
 
     for source, source_score in SOURCE_SCORES.items():
         if source in article.source.lower() or source in text:
