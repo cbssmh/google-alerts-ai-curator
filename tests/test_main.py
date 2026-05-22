@@ -195,8 +195,8 @@ def test_missing_openai_api_key_uses_fallback_mode(monkeypatch) -> None:
     assert openai_called is False
     assert len(built_articles) == 3
     assert built_articles[0].relevance_score == 8
-    assert built_articles[0].why_selected == "Fallback mode without OpenAI API."
-    assert built_articles[0].korean_summary == articles[0].title
-    assert built_articles[0].career_market_insight == ""
+    assert "Fallback mode" not in built_articles[0].why_selected
+    assert built_articles[0].korean_summary != articles[0].title
+    assert built_articles[0].career_market_insight
     assert store.marked_urls == [article.url for article in built_articles]
     assert store.saved is True

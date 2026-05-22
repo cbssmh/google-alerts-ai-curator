@@ -94,9 +94,18 @@ def _build_fallback_curated_articles(articles: list[Article]) -> list[CuratedArt
             url=article.url,
             snippet=article.snippet,
             relevance_score=8,
-            why_selected="Fallback mode without OpenAI API.",
-            korean_summary=article.title,
-            career_market_insight="",
+            why_selected=(
+                "Google Alerts에서 수집된 최근 기사입니다. "
+                "AI/기술 트렌드 관련 키워드를 포함해 검토 후보로 선정했습니다."
+            ),
+            korean_summary=(
+                "OpenAI API가 연결되지 않아 본문 요약은 생성하지 않았습니다. "
+                "원문 제목과 링크를 확인하세요."
+            ),
+            career_market_insight=(
+                "자동 인사이트는 비활성화 상태입니다. "
+                "OpenAI API 연결 후 개인 관심사 기반 커리어/시장 해석이 생성됩니다."
+            ),
         )
         for article in articles[:3]
     ]

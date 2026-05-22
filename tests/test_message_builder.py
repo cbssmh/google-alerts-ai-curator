@@ -37,6 +37,17 @@ def test_message_includes_korean_summary() -> None:
     assert "한국어 요약입니다." in message
 
 
+def test_message_uses_korean_labels() -> None:
+    message = build_telegram_message([make_article()])
+
+    assert "출처:" in message
+    assert "링크:" in message
+    assert "관련도 점수:" in message
+    assert "선정 이유:" in message
+    assert "요약:" in message
+    assert "커리어 / 시장 인사이트:" in message
+
+
 def test_multiple_articles_are_numbered() -> None:
     message = build_telegram_message(
         [
