@@ -39,3 +39,22 @@ def test_parse_google_alerts_email_normalizes_and_deduplicates_urls() -> None:
     articles = parse_google_alerts_email(html)
 
     assert [article.url for article in articles] == ["https://example.com/article"]
+
+
+def test_parse_google_alerts_email_skips_google_account_notifications() -> None:
+    html = """
+    <a href="https://myaccount.google.com/notifications">Security notification</a>
+    <a href="https://example.com/article">Real article</a>
+    """
+
+    articles = parse_google_alerts_email(html)
+
+    assert [article.url for article in articles] == ["https://example.com/article"]
+
+
+def test_parse_google_alerts_email_skips_links_whose_text_is_only_a_url() -> None:
+    html = '<a href="https://example.com/article">https://example.com/article</a>'
+
+    articles = parse_google_alerts_email(html)
+
+    assert articles == []

@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from bs4 import BeautifulSoup
 
 from src.models import Article
@@ -23,6 +25,9 @@ def parse_google_alerts_email(html: str) -> list[Article]:
         if not normalized_url:
             continue
 
+        if _is_skippable_link(normalized_url, title):
+            continue
+
         if normalized_url in seen_urls:
             continue
 
@@ -39,11 +44,13 @@ def _is_skippable_link(href: str, title: str) -> bool:
     skipped_href_parts = (
         "unsubscribe",
         "alerts.google.com",
+        "myaccount.google.com",
+        "accounts.google.com",
+        "support.google.com",
         "google.com/alerts",
         "google.com/preferences",
         "google.com/settings",
-        "accounts.google.com",
-        "support.google.com",
+        "google.com/notifications",
         "plus.google.com/share",
         "facebook.com/sharer",
         "twitter.com/share",
@@ -57,6 +64,13 @@ def _is_skippable_link(href: str, title: str) -> bool:
         "send feedback",
     )
 
-    return any(part in href_lower for part in skipped_href_parts) or any(
-        part in title_lower for part in skipped_title_parts
+    return (
+        any(part in href_lower for part in skipped_href_parts)
+        or any(part in title_lower for part in skipped_title_parts)
+        or _is_url_text_only(title)
     )
+
+
+def _is_url_text_only(text: str) -> bool:
+    parsed = urlparse(text.strip())
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
