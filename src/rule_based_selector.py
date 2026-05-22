@@ -21,59 +21,105 @@ SOURCE_SCORES = {
 
 SIGNAL_CATEGORIES = [
     (
-        "career",
+        "platform_shift",
         4,
-        ("layoffs", "hiring", "jobs", "workforce", "restructuring"),
-        "채용/인력 구조 변화",
-        "AI 확산이 채용 구조와 개발자 역할 변화에 영향을 줄 가능성이 있습니다.",
+        (
+            "platform",
+            "operating system",
+            "marketplace",
+            "app store",
+            "developer ecosystem",
+            "api",
+            "sdk",
+            "foundation model",
+        ),
+        "Platform Shift",
+        "플랫폼 지형 변화는 생태계 주도권, 유통 경로, 개발자와 기업의 기술 선택 기준을 바꿀 수 있습니다.",
     ),
     (
         "infrastructure",
         4,
-        ("data center", "datacenter", "gpu", "nvidia", "inference", "cloud infrastructure"),
-        "AI 인프라",
-        "AI 인프라 수요가 데이터센터, GPU, 클라우드 운영 역량의 가치를 높이고 있습니다.",
+        (
+            "data center",
+            "datacenter",
+            "gpu",
+            "nvidia",
+            "inference",
+            "cloud infrastructure",
+            "capacity",
+            "power grid",
+        ),
+        "AI Infrastructure",
+        "AI 인프라 확장은 데이터센터, GPU, 전력, 클라우드 공급망 전반의 투자 우선순위를 바꾸고 있습니다.",
+    ),
+    (
+        "ecosystem_competition",
+        4,
+        (
+            "competition",
+            "compete",
+            "rival",
+            "partnership",
+            "ecosystem",
+            "alliance",
+            "distribution",
+        ),
+        "Ecosystem Competition",
+        "생태계 경쟁은 모델, 클라우드, 반도체, 애플리케이션 기업 간 협력과 수익 배분 구조를 흔들 수 있습니다.",
     ),
     (
         "enterprise",
         3,
-        ("enterprise", "workplace", "productivity", "agent", "copilot", "gemini"),
-        "기업용 AI/생산성",
-        "기업용 AI 도입은 백엔드, 자동화, 워크플로우 통합 역량 수요와 연결됩니다.",
+        ("enterprise", "workplace", "productivity", "agent", "copilot", "gemini", "workflow"),
+        "Enterprise Adoption",
+        "기업용 AI 도입은 업무 프로세스, 소프트웨어 구매 기준, 자동화 시장의 경쟁 축을 바꾸고 있습니다.",
+    ),
+    (
+        "regulation",
+        3,
+        (
+            "regulation",
+            "policy",
+            "antitrust",
+            "government",
+            "lawmakers",
+            "eu ai act",
+            "state-backed",
+            "sovereign",
+        ),
+        "Government / Regulation",
+        "정부와 규제의 개입은 AI 시장의 진입 장벽, 제품 출시 속도, 글로벌 확장 전략을 좌우할 수 있습니다.",
     ),
     (
         "semiconductor",
         4,
         ("semiconductor", "chip", "foundry", "tsmc", "samsung", "sk hynix", "memory"),
-        "반도체 공급망",
-        "AI 경쟁이 반도체 공급망과 메모리/GPU 생태계의 중요성을 키우고 있습니다.",
+        "Semiconductor Race",
+        "반도체 경쟁은 AI 성능, 비용 구조, 공급망 협상력의 핵심 변수가 되고 있습니다.",
     ),
     (
-        "cybersecurity",
+        "interface_shift",
         3,
-        ("cybersecurity", "breach", "ransomware", "vulnerability"),
-        "사이버보안",
-        "AI 시대에는 보안 자동화, 취약점 대응, 인프라 방어 역량의 중요성이 커집니다.",
-    ),
-    (
-        "germany",
-        4,
-        ("germany", "berlin", "munich", "eu blue card", "visa"),
-        "독일/EU 커리어 이동성",
-        "독일·EU 관련 변화는 글로벌 IT 커리어 이동성과 연결될 수 있습니다.",
-    ),
-    (
-        "regulation",
-        3,
-        ("regulation", "policy", "antitrust", "government"),
-        "정책/규제",
-        "정책과 규제 변화는 AI 제품 전략, 시장 진입, 컴플라이언스 역량 수요에 영향을 줄 수 있습니다.",
+        (
+            "search",
+            "browser",
+            "interface",
+            "assistant",
+            "chatbot",
+            "answer engine",
+            "ai overview",
+        ),
+        "AI Interface Shift",
+        "검색, 브라우저, 어시스턴트 인터페이스 변화는 사용자가 정보와 소프트웨어를 소비하는 경로를 바꿀 수 있습니다.",
     ),
 ]
 
 LOW_VALUE_PATTERNS = (
     (("celebrity", "viral", "meme", "funny", "rumor"), -3),
     (("top 10", "things you need to know"), -2),
+    (("fear", "scary", "terrifying", "anxiety", "emotional reaction"), -3),
+    (("culture war", "backlash", "outrage", "panic"), -3),
+    (("jobs", "hiring", "layoffs", "workforce", "restructuring"), -1),
 )
 
 
@@ -136,7 +182,10 @@ def _build_why_selected(source_name: str, signals: list[str]) -> str:
     labels_by_category = {category: label for category, _points, _keywords, label, _insight in SIGNAL_CATEGORIES}
     reasons.extend(labels_by_category[signal] for signal in signals)
 
-    return " / ".join(reasons) + " 신호가 있어 우선 검토 대상으로 선정했습니다."
+    return (
+        " / ".join(reasons)
+        + " 신호가 있습니다. 이 흐름은 AI 시장의 경쟁 구도와 기술 채택 방향을 바꿀 수 있어 중요합니다."
+    )
 
 
 def _build_career_market_insight(signals: list[str]) -> str:
@@ -149,4 +198,4 @@ def _build_career_market_insight(signals: list[str]) -> str:
         if category in signals:
             return insights_by_category[category]
 
-    return "출처 신뢰도와 구조적 중요도를 기준으로 선별했습니다."
+    return "출처 신뢰도와 전략적 시장/기술 변화 가능성을 기준으로 선별했습니다."

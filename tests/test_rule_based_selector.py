@@ -44,10 +44,11 @@ def test_high_signal_infrastructure_article_is_selected() -> None:
 
     assert len(selected) == 1
     assert selected[0].relevance_score >= 5
-    assert "AI 인프라" in selected[0].why_selected
+    assert "AI Infrastructure" in selected[0].why_selected
+    assert "데이터센터" in selected[0].career_market_insight
 
 
-def test_career_jobs_article_produces_career_related_korean_insight() -> None:
+def test_generic_jobs_article_is_not_prioritized() -> None:
     articles = [
         make_article(
             "AI restructuring changes software jobs and hiring plans",
@@ -55,9 +56,35 @@ def test_career_jobs_article_produces_career_related_korean_insight() -> None:
         )
     ]
 
+    assert select_high_signal_articles(articles) == []
+
+
+def test_platform_shift_explains_why_the_trend_matters() -> None:
+    articles = [
+        make_article(
+            "OpenAI launches new developer platform and app store ecosystem",
+            source="The Information",
+        )
+    ]
+
     selected = select_high_signal_articles(articles)
 
-    assert "채용 구조와 개발자 역할 변화" in selected[0].career_market_insight
+    assert "Platform Shift" in selected[0].why_selected
+    assert "이 흐름은 AI 시장의 경쟁 구도와 기술 채택 방향" in selected[0].why_selected
+    assert "생태계 주도권" in selected[0].career_market_insight
+
+
+def test_interface_shift_article_is_selected() -> None:
+    articles = [
+        make_article(
+            "Google changes search and browser interface with AI assistant",
+            source="The Verge",
+        )
+    ]
+
+    selected = select_high_signal_articles(articles)
+
+    assert "AI Interface Shift" in selected[0].why_selected
 
 
 def test_results_are_sorted_by_score_descending() -> None:

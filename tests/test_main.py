@@ -212,7 +212,7 @@ def test_missing_openai_api_key_uses_rule_based_selector(monkeypatch) -> None:
     assert message_headers == ["Daily High-Signal Tech Alerts"]
     assert show_summary_values == [False]
     assert built_articles[0].relevance_score >= 5
-    assert "AI 인프라" in built_articles[0].why_selected
+    assert "AI Infrastructure" in built_articles[0].why_selected
     assert built_articles[0].korean_summary != articles[0].title
     assert built_articles[0].career_market_insight
     assert store.marked_urls == [article.url for article in built_articles]
