@@ -7,7 +7,7 @@ from src.dedup_store import DedupStore
 from src.gmail_fetcher import fetch_recent_google_alerts_html
 from src.google_alerts_parser import parse_google_alerts_email
 from src.message_builder import build_telegram_message
-from src.models import Article, CuratedArticle
+from src.rule_based_selector import select_high_signal_articles
 from src.telegram_sender import send_telegram_message
 
 
@@ -49,14 +49,16 @@ def main() -> None:
     openai_api_key = os.environ.get("OPENAI_API_KEY", "")
     if openai_api_key:
         curated_articles = curate_articles(new_articles, openai_api_key)
+        message_header = "Daily AI Curated News Top 3"
     else:
-        curated_articles = _build_fallback_curated_articles(new_articles)
+        curated_articles = select_high_signal_articles(new_articles)
+        message_header = "Daily High-Signal Tech Alerts"
 
     if not curated_articles:
         print("No high-signal articles selected.")
         return
 
-    message = build_telegram_message(curated_articles)
+    message = build_telegram_message(curated_articles, header=message_header)
     if not message:
         print("No Telegram message generated.")
         return
@@ -84,31 +86,6 @@ def _load_required_env() -> dict[str, str] | None:
         return None
 
     return env
-
-
-def _build_fallback_curated_articles(articles: list[Article]) -> list[CuratedArticle]:
-    return [
-        CuratedArticle(
-            title=article.title,
-            source=article.source,
-            url=article.url,
-            snippet=article.snippet,
-            relevance_score=8,
-            why_selected=(
-                "Google Alerts에서 수집된 최근 기사입니다. "
-                "AI/기술 트렌드 관련 키워드를 포함해 검토 후보로 선정했습니다."
-            ),
-            korean_summary=(
-                "OpenAI API가 연결되지 않아 본문 요약은 생성하지 않았습니다. "
-                "원문 제목과 링크를 확인하세요."
-            ),
-            career_market_insight=(
-                "자동 인사이트는 비활성화 상태입니다. "
-                "OpenAI API 연결 후 개인 관심사 기반 커리어/시장 해석이 생성됩니다."
-            ),
-        )
-        for article in articles[:3]
-    ]
 
 
 if __name__ == "__main__":

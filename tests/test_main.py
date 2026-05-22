@@ -10,8 +10,13 @@ def set_required_env(monkeypatch) -> None:
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "chat-id")
 
 
-def make_article(url: str = "https://example.com/article") -> Article:
-    return Article(title="Article", source="", url=url, snippet="")
+def make_article(
+    url: str = "https://example.com/article",
+    title: str = "Article",
+    source: str = "",
+    snippet: str = "",
+) -> Article:
+    return Article(title=title, source=source, url=url, snippet=snippet)
 
 
 def make_curated_article(url: str = "https://example.com/article") -> CuratedArticle:
@@ -100,7 +105,7 @@ def test_successful_pipeline_sends_telegram_and_saves_dedup(monkeypatch) -> None
     monkeypatch.setattr(
         main_module,
         "build_telegram_message",
-        lambda articles: "telegram message",
+        lambda articles, header="Daily AI Curated News Top 3": "telegram message",
     )
 
     sent_messages = []
@@ -139,7 +144,7 @@ def test_failed_telegram_send_does_not_mark_processed_urls(monkeypatch) -> None:
     monkeypatch.setattr(
         main_module,
         "build_telegram_message",
-        lambda articles: "telegram message",
+        lambda articles, header="Daily AI Curated News Top 3": "telegram message",
     )
     monkeypatch.setattr(main_module, "send_telegram_message", lambda *args: False)
 
@@ -149,14 +154,16 @@ def test_failed_telegram_send_does_not_mark_processed_urls(monkeypatch) -> None:
     assert store.saved is False
 
 
-def test_missing_openai_api_key_uses_fallback_mode(monkeypatch) -> None:
+def test_missing_openai_api_key_uses_rule_based_selector(monkeypatch) -> None:
     set_required_env(monkeypatch)
     monkeypatch.delenv("OPENAI_API_KEY")
     articles = [
-        make_article("https://example.com/one"),
-        make_article("https://example.com/two"),
-        make_article("https://example.com/three"),
-        make_article("https://example.com/four"),
+        make_article(
+            "https://example.com/one",
+            title="Nvidia GPU demand lifts cloud infrastructure spending",
+            source="Reuters",
+        ),
+        make_article("https://example.com/two", title="Celebrity AI meme goes viral"),
     ]
     store = FakeDedupStore()
     store.new_articles = articles
@@ -178,9 +185,11 @@ def test_missing_openai_api_key_uses_fallback_mode(monkeypatch) -> None:
     monkeypatch.setattr(main_module, "curate_articles", fake_curate_articles)
 
     built_articles = []
+    message_headers = []
 
-    def fake_build_telegram_message(curated_articles):
+    def fake_build_telegram_message(curated_articles, header="Daily AI Curated News Top 3"):
         built_articles.extend(curated_articles)
+        message_headers.append(header)
         return "telegram message"
 
     monkeypatch.setattr(
@@ -193,9 +202,10 @@ def test_missing_openai_api_key_uses_fallback_mode(monkeypatch) -> None:
     main_module.main()
 
     assert openai_called is False
-    assert len(built_articles) == 3
-    assert built_articles[0].relevance_score == 8
-    assert "Fallback mode" not in built_articles[0].why_selected
+    assert len(built_articles) == 1
+    assert message_headers == ["Daily High-Signal Tech Alerts"]
+    assert built_articles[0].relevance_score >= 5
+    assert "AI 인프라" in built_articles[0].why_selected
     assert built_articles[0].korean_summary != articles[0].title
     assert built_articles[0].career_market_insight
     assert store.marked_urls == [article.url for article in built_articles]

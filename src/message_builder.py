@@ -1,11 +1,14 @@
 from src.models import CuratedArticle
 
 
-def build_telegram_message(articles: list[CuratedArticle]) -> str:
+def build_telegram_message(
+    articles: list[CuratedArticle],
+    header: str = "Daily AI Curated News Top 3",
+) -> str:
     if not articles:
         return ""
 
-    sections = ["Daily AI Curated News Top 3"]
+    sections = [header]
     for index, article in enumerate(articles, start=1):
         sections.append(
             "\n".join(
