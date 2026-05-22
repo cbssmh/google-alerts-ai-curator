@@ -175,8 +175,7 @@ def _score_article(article: Article) -> tuple[int, str, list[str]]:
     for title_pattern, points, category in TITLE_BOOSTS:
         if title_pattern.lower() in article.title.lower():
             score += points
-            if category not in matched_signals:
-                matched_signals.append(category)
+            _append_unique(matched_signals, category)
 
     for source, source_score in SOURCE_SCORES.items():
         if source in article.source.lower() or source in text:
@@ -187,13 +186,18 @@ def _score_article(article: Article) -> tuple[int, str, list[str]]:
     for category, points, keywords, label, _insight in SIGNAL_CATEGORIES:
         if any(keyword in text for keyword in keywords):
             score += points
-            matched_signals.append(category)
+            _append_unique(matched_signals, category)
 
     for patterns, penalty in LOW_VALUE_PATTERNS:
         if any(pattern in text for pattern in patterns):
             score += penalty
 
     return score, matched_source, matched_signals
+
+
+def _append_unique(items: list[str], item: str) -> None:
+    if item not in items:
+        items.append(item)
 
 
 def _build_why_selected(source_name: str, signals: list[str]) -> str:

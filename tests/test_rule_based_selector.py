@@ -127,6 +127,19 @@ def test_google_shifts_to_ai_search_is_selected() -> None:
     assert "AI Interface Shift" in selected[0].why_selected
 
 
+def test_matched_signal_labels_are_unique() -> None:
+    articles = [
+        make_article(
+            "Google Shifts to AI Search with a new search interface",
+            source="TIME",
+        )
+    ]
+
+    selected = select_high_signal_articles(articles)
+
+    assert selected[0].why_selected.count("AI Interface Shift") == 1
+
+
 def test_white_house_ai_order_is_selected() -> None:
     articles = [
         make_article(
