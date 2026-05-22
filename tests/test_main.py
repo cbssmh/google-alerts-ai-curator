@@ -147,3 +147,56 @@ def test_failed_telegram_send_does_not_mark_processed_urls(monkeypatch) -> None:
 
     assert store.marked_urls == []
     assert store.saved is False
+
+
+def test_missing_openai_api_key_uses_fallback_mode(monkeypatch) -> None:
+    set_required_env(monkeypatch)
+    monkeypatch.delenv("OPENAI_API_KEY")
+    articles = [
+        make_article("https://example.com/one"),
+        make_article("https://example.com/two"),
+        make_article("https://example.com/three"),
+        make_article("https://example.com/four"),
+    ]
+    store = FakeDedupStore()
+    store.new_articles = articles
+    monkeypatch.setattr(main_module, "DedupStore", lambda: store)
+    monkeypatch.setattr(
+        main_module,
+        "fetch_recent_google_alerts_html",
+        lambda *args: ["<html></html>"],
+    )
+    monkeypatch.setattr(main_module, "parse_google_alerts_email", lambda html: articles)
+
+    openai_called = False
+
+    def fake_curate_articles(new_articles, api_key):
+        nonlocal openai_called
+        openai_called = True
+        return []
+
+    monkeypatch.setattr(main_module, "curate_articles", fake_curate_articles)
+
+    built_articles = []
+
+    def fake_build_telegram_message(curated_articles):
+        built_articles.extend(curated_articles)
+        return "telegram message"
+
+    monkeypatch.setattr(
+        main_module,
+        "build_telegram_message",
+        fake_build_telegram_message,
+    )
+    monkeypatch.setattr(main_module, "send_telegram_message", lambda *args: True)
+
+    main_module.main()
+
+    assert openai_called is False
+    assert len(built_articles) == 3
+    assert built_articles[0].relevance_score == 8
+    assert built_articles[0].why_selected == "Fallback mode without OpenAI API."
+    assert built_articles[0].korean_summary == articles[0].title
+    assert built_articles[0].career_market_insight == ""
+    assert store.marked_urls == [article.url for article in built_articles]
+    assert store.saved is True

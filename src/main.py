@@ -7,13 +7,13 @@ from src.dedup_store import DedupStore
 from src.gmail_fetcher import fetch_recent_google_alerts_html
 from src.google_alerts_parser import parse_google_alerts_email
 from src.message_builder import build_telegram_message
+from src.models import Article, CuratedArticle
 from src.telegram_sender import send_telegram_message
 
 
 REQUIRED_ENV_VARS = (
     "GMAIL_EMAIL",
     "GMAIL_APP_PASSWORD",
-    "OPENAI_API_KEY",
     "TELEGRAM_BOT_TOKEN",
     "TELEGRAM_CHAT_ID",
 )
@@ -46,7 +46,12 @@ def main() -> None:
         print("No new articles to process.")
         return
 
-    curated_articles = curate_articles(new_articles, env["OPENAI_API_KEY"])
+    openai_api_key = os.environ.get("OPENAI_API_KEY", "")
+    if openai_api_key:
+        curated_articles = curate_articles(new_articles, openai_api_key)
+    else:
+        curated_articles = _build_fallback_curated_articles(new_articles)
+
     if not curated_articles:
         print("No high-signal articles selected.")
         return
@@ -79,6 +84,22 @@ def _load_required_env() -> dict[str, str] | None:
         return None
 
     return env
+
+
+def _build_fallback_curated_articles(articles: list[Article]) -> list[CuratedArticle]:
+    return [
+        CuratedArticle(
+            title=article.title,
+            source=article.source,
+            url=article.url,
+            snippet=article.snippet,
+            relevance_score=8,
+            why_selected="Fallback mode without OpenAI API.",
+            korean_summary=article.title,
+            career_market_insight="",
+        )
+        for article in articles[:3]
+    ]
 
 
 if __name__ == "__main__":
