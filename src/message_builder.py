@@ -1,3 +1,5 @@
+from html import escape
+
 from src.models import CuratedArticle
 from src.rule_based_selector import score_to_stars
 
@@ -20,7 +22,11 @@ INTERNAL_REASON_LABELS = {
     "Semiconductor Race",
 }
 
-SEPARATOR = "────────────"
+STAR_RATINGS = {
+    "⭐⭐⭐⭐⭐": "5.0/5",
+    "⭐⭐⭐⭐☆": "4.5/5",
+    "⭐⭐⭐☆☆": "3.0/5",
+}
 
 
 def build_telegram_message(
@@ -35,26 +41,27 @@ def build_telegram_message(
         _build_article_section(index, article)
         for index, article in enumerate(articles, start=1)
     ]
-    return header + "\n\n" + f"\n\n{SEPARATOR}\n\n".join(article_sections)
+    return _escape_text(header) + "\n\n" + "\n\n\n".join(article_sections)
 
 
 def _build_article_section(index: int, article: CuratedArticle) -> str:
+    stars = score_to_stars(article.relevance_score)
     lines = [
-        f"{_rank_label(index)} {score_to_stars(article.relevance_score)}",
+        _rank_label(index),
         "",
-        _clean_text(article.title),
+        _escape_text(_clean_text(article.title)),
+        "",
+        "추천도",
+        "",
+        f"{stars} ({STAR_RATINGS[stars]})",
     ]
-
-    source = _clean_text(article.source)
-    if source:
-        lines.append(source)
 
     reasons = _reader_facing_reasons(article.recommendation_reasons)
     if reasons:
-        lines.extend(["", "선정 포인트"])
-        lines.extend(f"• {reason}" for reason in reasons)
+        lines.extend(["", "선정 포인트", ""])
+        lines.extend(f"• {_escape_text(reason)}" for reason in reasons)
 
-    lines.extend(["", "🔗 Read", article.url])
+    lines.extend(["", f'🔗 <a href="{_escape_attr(article.url)}">Read</a>'])
     return "\n".join(lines)
 
 
@@ -80,3 +87,11 @@ def _reader_facing_reasons(reasons: list[str], limit: int = 3) -> list[str]:
 
 def _clean_text(text: str) -> str:
     return " ".join(text.split())
+
+
+def _escape_text(text: str) -> str:
+    return escape(text, quote=False)
+
+
+def _escape_attr(text: str) -> str:
+    return escape(text, quote=True)

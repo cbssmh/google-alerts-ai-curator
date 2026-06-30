@@ -33,6 +33,20 @@ def test_successful_response_returns_true(monkeypatch) -> None:
     assert send_telegram_message("token", "chat", "hello") is True
 
 
+def test_send_telegram_message_uses_html_parse_mode(monkeypatch) -> None:
+    sent_payloads = []
+
+    def fake_post(url, data, timeout):
+        sent_payloads.append(data)
+        return Response(200)
+
+    monkeypatch.setattr(telegram_sender.requests, "post", fake_post)
+
+    assert send_telegram_message("token", "chat", "hello") is True
+    assert sent_payloads[0]["parse_mode"] == "HTML"
+    assert sent_payloads[0]["disable_web_page_preview"] is True
+
+
 def test_failed_response_returns_false(monkeypatch) -> None:
     def fake_post(url, data, timeout):
         return Response(500)

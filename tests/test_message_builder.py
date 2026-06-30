@@ -47,9 +47,9 @@ def test_message_uses_circled_numbering_for_top_3() -> None:
         ]
     )
 
-    assert "① " in message
-    assert "② " in message
-    assert "③ " in message
+    assert "①\n" in message
+    assert "②\n" in message
+    assert "③\n" in message
 
 
 def test_message_falls_back_to_normal_numbering_after_top_3() -> None:
@@ -62,14 +62,31 @@ def test_message_falls_back_to_normal_numbering_after_top_3() -> None:
         ]
     )
 
-    assert "4. " in message
+    assert "4.\n" in message
 
 
-def test_message_uses_stars_not_numeric_score() -> None:
-    message = build_telegram_message([make_article(relevance_score=12)])
+def test_recommendation_rating_appears_below_title() -> None:
+    title = "Original AI Title"
 
-    assert "⭐⭐⭐⭐⭐" in message
-    assert "12" not in message
+    message = build_telegram_message([make_article(title=title, relevance_score=8)])
+
+    assert f"{title}\n\n추천도\n\n⭐⭐⭐⭐☆ (4.5/5)" in message
+
+
+def test_recommendation_rating_maps_score_ranges() -> None:
+    five = build_telegram_message([make_article(relevance_score=12)])
+    four_half = build_telegram_message([make_article(relevance_score=8)])
+    three = build_telegram_message([make_article(relevance_score=4)])
+
+    assert "⭐⭐⭐⭐⭐ (5.0/5)" in five
+    assert "⭐⭐⭐⭐☆ (4.5/5)" in four_half
+    assert "⭐⭐⭐☆☆ (3.0/5)" in three
+
+
+def test_internal_numeric_score_is_not_shown() -> None:
+    message = build_telegram_message([make_article(relevance_score=23)])
+
+    assert "23" not in message
     assert "관련도 점수" not in message
 
 
@@ -81,18 +98,17 @@ def test_message_renders_full_english_title() -> None:
     assert title in message
 
 
-def test_message_renders_source_without_icon_label() -> None:
-    message = build_telegram_message([make_article(source="Reuters")])
+def test_article_text_is_html_escaped() -> None:
+    message = build_telegram_message(
+        [
+            make_article(
+                title='OpenAI & Google <launch> "AI"',
+                recommendation_reasons=["가격 / 비용 변화"],
+            )
+        ]
+    )
 
-    assert "Reuters" in message
-    assert "📂" not in message
-
-
-def test_empty_source_is_hidden() -> None:
-    message = build_telegram_message([make_article(source="  ")])
-
-    assert "\n  \n" not in message
-    assert "📂" not in message
+    assert "OpenAI &amp; Google &lt;launch&gt; \"AI\"" in message
 
 
 def test_recommendation_reasons_render_under_selection_points() -> None:
@@ -104,7 +120,7 @@ def test_recommendation_reasons_render_under_selection_points() -> None:
         ]
     )
 
-    assert "선정 포인트" in message
+    assert "선정 포인트\n\n" in message
     assert "• 신뢰도 높은 출처" in message
     assert "• 가격 / 비용 변화" in message
     assert "• 기업 도입" in message
@@ -182,15 +198,22 @@ def test_old_labels_are_absent() -> None:
     assert "AI Interface Shift" not in message
 
 
-def test_separator_appears_between_articles_only() -> None:
+def test_separator_is_not_rendered() -> None:
     message = build_telegram_message([make_article("First"), make_article("Second")])
 
-    assert message.count("────────────") == 1
-    assert not message.endswith("────────────")
+    assert "────────────" not in message
 
 
-def test_link_uses_plain_read_label_without_markdown_parse_mode() -> None:
+def test_link_uses_html_anchor_and_hides_visible_raw_url() -> None:
     message = build_telegram_message([make_article(url="https://example.com/article")])
 
-    assert "🔗 Read\nhttps://example.com/article" in message
-    assert "[Read]" not in message
+    assert '🔗 <a href="https://example.com/article">Read</a>' in message
+    assert "\nhttps://example.com/article" not in message
+
+
+def test_link_url_is_html_attribute_escaped() -> None:
+    message = build_telegram_message(
+        [make_article(url='https://example.com/article?a=1&b="two"')]
+    )
+
+    assert 'href="https://example.com/article?a=1&amp;b=&quot;two&quot;"' in message
