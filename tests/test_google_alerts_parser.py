@@ -30,6 +30,14 @@ def test_parse_google_alerts_email_returns_articles() -> None:
     assert articles[0].url
 
 
+def test_parse_google_alerts_email_extracts_snippet_from_fixture() -> None:
+    html = load_html_fixture()
+
+    articles = parse_google_alerts_email(html)
+
+    assert any(article.snippet for article in articles)
+
+
 def test_parse_google_alerts_email_normalizes_and_deduplicates_urls() -> None:
     html = """
     <a href="https://www.google.com/url?q=https%3A%2F%2Fexample.com%2Farticle%2F%3Futm_source%3Dalerts">Article one</a>
@@ -71,3 +79,34 @@ def test_parse_google_alerts_email_extracts_source_from_title_text() -> None:
 
     assert articles[0].title == "100 things we announced at I/O 2026"
     assert articles[0].source == "Google Blog"
+
+
+def test_parse_google_alerts_email_extracts_article_description() -> None:
+    html = """
+    <tr itemtype="http://schema.org/Article">
+      <td>
+        <a href="https://example.com/article">AI platform shift - Example</a>
+        <div itemprop="description">
+          Google Alerts snippet with useful market context.
+        </div>
+      </td>
+    </tr>
+    """
+
+    articles = parse_google_alerts_email(html)
+
+    assert articles[0].snippet == "Google Alerts snippet with useful market context."
+
+
+def test_parse_google_alerts_email_missing_description_uses_empty_snippet() -> None:
+    html = """
+    <tr itemtype="http://schema.org/Article">
+      <td>
+        <a href="https://example.com/article">AI platform shift - Example</a>
+      </td>
+    </tr>
+    """
+
+    articles = parse_google_alerts_email(html)
+
+    assert articles[0].snippet == ""

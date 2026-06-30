@@ -145,9 +145,9 @@ def select_high_signal_articles(
 ) -> list[CuratedArticle]:
     scored_articles = []
     for article in articles:
-        score, source_name, signals = _score_article(article)
+        score, source_name, signals, primary_signal = _score_article(article)
         if score >= 4:
-            scored_articles.append((score, article, source_name, signals))
+            scored_articles.append((score, article, source_name, signals, primary_signal))
 
     scored_articles.sort(key=lambda item: item[0], reverse=True)
 
@@ -158,24 +158,25 @@ def select_high_signal_articles(
             url=article.url,
             snippet=article.snippet,
             relevance_score=score,
-            why_selected=_build_why_selected(source_name, signals),
+            why_selected=_build_why_selected(article, source_name, signals, primary_signal),
             korean_summary="본문 요약은 생성하지 않았습니다. 원문 제목과 링크를 기준으로 선별했습니다.",
-            career_market_insight=_build_career_market_insight(signals),
+            career_market_insight=_build_career_market_insight(primary_signal),
         )
-        for score, article, source_name, signals in scored_articles[:limit]
+        for score, article, source_name, signals, primary_signal in scored_articles[:limit]
     ]
 
 
-def _score_article(article: Article) -> tuple[int, str, list[str]]:
+def _score_article(article: Article) -> tuple[int, str, list[str], str]:
     text = " ".join([article.title, article.source, article.snippet]).lower()
     score = 0
     matched_source = ""
     matched_signals = []
+    signal_scores: dict[str, int] = {}
 
     for title_pattern, points, category in TITLE_BOOSTS:
         if title_pattern.lower() in article.title.lower():
             score += points
-            _append_unique(matched_signals, category)
+            _add_signal_match(matched_signals, signal_scores, category, points)
 
     for source, source_score in SOURCE_SCORES.items():
         if source in article.source.lower() or source in text:
@@ -186,13 +187,14 @@ def _score_article(article: Article) -> tuple[int, str, list[str]]:
     for category, points, keywords, label, _insight in SIGNAL_CATEGORIES:
         if any(keyword in text for keyword in keywords):
             score += points
-            _append_unique(matched_signals, category)
+            _add_signal_match(matched_signals, signal_scores, category, points)
 
     for patterns, penalty in LOW_VALUE_PATTERNS:
         if any(pattern in text for pattern in patterns):
             score += penalty
 
-    return score, matched_source, matched_signals
+    primary_signal = _select_primary_signal(matched_signals, signal_scores)
+    return score, matched_source, matched_signals, primary_signal
 
 
 def _append_unique(items: list[str], item: str) -> None:
@@ -200,28 +202,91 @@ def _append_unique(items: list[str], item: str) -> None:
         items.append(item)
 
 
-def _build_why_selected(source_name: str, signals: list[str]) -> str:
+def _add_signal_match(
+    matched_signals: list[str],
+    signal_scores: dict[str, int],
+    category: str,
+    points: int,
+) -> None:
+    _append_unique(matched_signals, category)
+    signal_scores[category] = signal_scores.get(category, 0) + points
+
+
+def _select_primary_signal(
+    matched_signals: list[str],
+    signal_scores: dict[str, int],
+) -> str:
+    if not matched_signals:
+        return ""
+
+    return max(matched_signals, key=lambda signal: signal_scores.get(signal, 0))
+
+
+def _build_why_selected(
+    article: Article,
+    source_name: str,
+    signals: list[str],
+    primary_signal: str,
+) -> str:
     reasons = []
     if source_name:
-        reasons.append(f"신뢰도 높은 출처({source_name})")
+        reasons.append(f"신뢰도 높은 출처({article.source or source_name})")
 
     labels_by_category = {category: label for category, _points, _keywords, label, _insight in SIGNAL_CATEGORIES}
-    reasons.extend(labels_by_category[signal] for signal in signals)
+    if primary_signal:
+        reasons.append(f"주요 신호: {labels_by_category[primary_signal]}")
+        secondary_signals = [signal for signal in signals if signal != primary_signal]
+        if secondary_signals:
+            reasons.append(
+                "보조 신호: "
+                + " / ".join(labels_by_category[signal] for signal in secondary_signals)
+            )
+
+    evidence_source = "알림 요약" if article.snippet else "제목"
+    evidence_text = _shorten_evidence(article.snippet or article.title)
+    evidence = f"{evidence_source} 근거: {evidence_text}"
+
+    interpretation = _build_primary_signal_interpretation(primary_signal)
+    if not reasons:
+        reasons.append("출처와 제목 기준의 전략적 검토 후보")
 
     return (
         " / ".join(reasons)
-        + " 신호가 있습니다. 이 흐름은 AI 시장의 경쟁 구도와 기술 채택 방향을 바꿀 수 있어 중요합니다."
+        + f". {evidence}. {interpretation}"
     )
 
 
-def _build_career_market_insight(signals: list[str]) -> str:
+def _build_career_market_insight(primary_signal: str) -> str:
     insights_by_category = {
         category: insight
         for category, _points, _keywords, _label, insight in SIGNAL_CATEGORIES
     }
 
-    for category, _points, _keywords, _label, _insight in SIGNAL_CATEGORIES:
-        if category in signals:
-            return insights_by_category[category]
+    if primary_signal in insights_by_category:
+        return insights_by_category[primary_signal]
 
     return "출처 신뢰도와 전략적 시장/기술 변화 가능성을 기준으로 선별했습니다."
+
+
+def _build_primary_signal_interpretation(primary_signal: str) -> str:
+    interpretations = {
+        "platform_shift": "이는 AI 경쟁의 중심이 개별 기능보다 플랫폼 장악력과 개발자 생태계로 이동하는 신호일 수 있습니다.",
+        "infrastructure": "이는 AI 수요가 모델 경쟁을 넘어 데이터센터, GPU, 전력, 클라우드 투자로 확장되는 신호일 수 있습니다.",
+        "ecosystem_competition": "이는 소비자 AI와 기업 AI의 주도권이 모델 성능뿐 아니라 제품 생태계와 유통 채널 경쟁으로 이동하는 신호일 수 있습니다.",
+        "enterprise": "이는 AI가 실험 단계를 넘어 업무 흐름과 기업 소프트웨어 구매 기준에 들어가는 신호일 수 있습니다.",
+        "regulation": "이는 정부와 규제가 AI 시장의 속도, 책임 범위, 경쟁 구도에 직접 영향을 주기 시작했다는 신호일 수 있습니다.",
+        "semiconductor": "이는 AI 경쟁의 병목이 알고리즘뿐 아니라 칩, 메모리, 공급망 역량으로 옮겨가는 신호일 수 있습니다.",
+        "interface_shift": "이는 검색, 브라우저, 어시스턴트가 사용자의 정보 접근 방식과 AI 서비스 유통 경로를 바꾸는 신호일 수 있습니다.",
+    }
+    return interpretations.get(
+        primary_signal,
+        "이는 출처 신뢰도와 제목의 전략적 맥락을 기준으로 읽어볼 만한 후보입니다.",
+    )
+
+
+def _shorten_evidence(text: str, max_length: int = 160) -> str:
+    normalized = " ".join(text.split())
+    if len(normalized) <= max_length:
+        return normalized
+
+    return normalized[: max_length - 3].rstrip() + "..."

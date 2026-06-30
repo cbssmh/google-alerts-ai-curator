@@ -70,8 +70,9 @@ def test_platform_shift_explains_why_the_trend_matters() -> None:
     selected = select_high_signal_articles(articles)
 
     assert "Platform Shift" in selected[0].why_selected
-    assert "이 흐름은 AI 시장의 경쟁 구도와 기술 채택 방향" in selected[0].why_selected
-    assert "생태계 주도권" in selected[0].career_market_insight
+    assert "주요 신호: Ecosystem Competition" in selected[0].why_selected
+    assert "제품 생태계와 유통 채널 경쟁" in selected[0].why_selected
+    assert "협력과 수익 배분 구조" in selected[0].career_market_insight
 
 
 def test_interface_shift_article_is_selected() -> None:
@@ -125,6 +126,40 @@ def test_google_shifts_to_ai_search_is_selected() -> None:
 
     assert len(selected) == 1
     assert "AI Interface Shift" in selected[0].why_selected
+
+
+def test_why_selected_includes_snippet_evidence_when_present() -> None:
+    articles = [
+        make_article(
+            "Google is dethroning OpenAI as the king of consumer AI",
+            source="The Economist",
+            snippet=(
+                "Google is using distribution through Android, Search, and Gemini "
+                "to challenge OpenAI in consumer AI products."
+            ),
+        )
+    ]
+
+    selected = select_high_signal_articles(articles)
+
+    assert "알림 요약 근거" in selected[0].why_selected
+    assert "Android, Search, and Gemini" in selected[0].why_selected
+    assert "Ecosystem Competition" in selected[0].why_selected
+
+
+def test_why_selected_falls_back_to_title_when_snippet_is_empty() -> None:
+    articles = [
+        make_article(
+            "Google is dethroning OpenAI as the king of consumer AI",
+            source="The Economist",
+            snippet="",
+        )
+    ]
+
+    selected = select_high_signal_articles(articles)
+
+    assert "제목 근거" in selected[0].why_selected
+    assert "Google is dethroning OpenAI" in selected[0].why_selected
 
 
 def test_matched_signal_labels_are_unique() -> None:
@@ -188,3 +223,37 @@ def test_generic_graduation_booing_does_not_outrank_market_shift_articles() -> N
 
     assert all("graduation" not in article.title.lower() for article in selected)
     assert selected[0].title.startswith("AI & Tech Brief") or selected[0].title.startswith("Google Shifts")
+
+
+def test_career_market_insight_follows_primary_matched_signal() -> None:
+    articles = [
+        make_article(
+            "Google Shifts to AI Search, Heralding Major Change in How People Use the Internet",
+            source="TIME",
+            snippet="Google also mentioned AI infrastructure and chips spending.",
+        )
+    ]
+
+    selected = select_high_signal_articles(articles)
+
+    assert "AI Interface Shift" in selected[0].why_selected
+    assert "검색, 브라우저, 어시스턴트" in selected[0].career_market_insight
+    assert "반도체 경쟁" not in selected[0].career_market_insight
+
+
+def test_existing_ranking_and_threshold_behavior_remains_stable() -> None:
+    articles = [
+        make_article("Top 10 celebrity AI memes that went viral", source="Unknown Blog"),
+        make_article("Enterprise Copilot productivity rollout", source="TechCrunch"),
+        make_article(
+            "Nvidia GPU and semiconductor supply reshape cloud infrastructure",
+            source="Bloomberg",
+        ),
+    ]
+
+    selected = select_high_signal_articles(articles)
+
+    assert [article.title for article in selected] == [
+        "Nvidia GPU and semiconductor supply reshape cloud infrastructure",
+        "Enterprise Copilot productivity rollout",
+    ]

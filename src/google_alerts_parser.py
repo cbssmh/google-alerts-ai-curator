@@ -31,9 +31,12 @@ def parse_google_alerts_email(html: str) -> list[Article]:
         if normalized_url in seen_urls:
             continue
 
+        snippet = _extract_snippet(link)
         title, source = _split_title_and_source(title)
         seen_urls.add(normalized_url)
-        articles.append(Article(title=title, source=source, url=normalized_url, snippet=""))
+        articles.append(
+            Article(title=title, source=source, url=normalized_url, snippet=snippet)
+        )
 
     return articles
 
@@ -83,3 +86,15 @@ def _split_title_and_source(text: str) -> tuple[str, str]:
         return text, ""
 
     return title, source
+
+
+def _extract_snippet(link) -> str:
+    container = link.find_parent(attrs={"itemtype": "http://schema.org/Article"})
+    if not container:
+        return ""
+
+    description = container.find(attrs={"itemprop": "description"})
+    if not description:
+        return ""
+
+    return description.get_text(" ", strip=True)
