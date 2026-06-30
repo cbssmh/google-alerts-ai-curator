@@ -5,14 +5,15 @@ from src.models import CuratedArticle
 def make_article(
     title: str = "Original AI Title",
     source: str = "Example",
-    snippet: str = "Google Alerts snippet with original English source text.",
     relevance_score: int = 9,
+    recommendation_reasons=None,
+    url: str = "https://example.com/article",
 ) -> CuratedArticle:
     return CuratedArticle(
         title=title,
         source=source,
-        url="https://example.com/article",
-        snippet=snippet,
+        url=url,
+        snippet="Google Alerts snippet with original English source text.",
         relevance_score=relevance_score,
         why_selected=(
             "신뢰도 높은 출처(Example) / 주요 신호: AI Interface Shift / "
@@ -21,6 +22,9 @@ def make_article(
         ),
         korean_summary="한국어 요약입니다.",
         career_market_insight="커리어와 시장 인사이트입니다.",
+        recommendation_reasons=recommendation_reasons
+        if recommendation_reasons is not None
+        else ["신뢰도 높은 출처", "가격 / 비용 변화", "기업 도입"],
     )
 
 
@@ -28,102 +32,165 @@ def test_empty_list_returns_empty_string() -> None:
     assert build_telegram_message([]) == ""
 
 
-def test_message_includes_header() -> None:
+def test_message_includes_final_header() -> None:
     message = build_telegram_message([make_article()])
 
-    assert "Daily AI Curated News Top 3" in message
+    assert "Daily High-Signal Tech Alerts" in message
 
 
-def test_message_includes_original_title() -> None:
-    message = build_telegram_message([make_article("Original Article Title")])
+def test_message_uses_circled_numbering_for_top_3() -> None:
+    message = build_telegram_message(
+        [
+            make_article("First"),
+            make_article("Second"),
+            make_article("Third"),
+        ]
+    )
 
-    assert "Original Article Title" in message
-
-
-def test_message_uses_reader_facing_card_labels() -> None:
-    message = build_telegram_message([make_article()])
-
-    assert "📰" in message
-    assert "📂" in message
-    assert "📝 Google Alerts" in message
-    assert "💡 Why it Matters" in message
-    assert "🔗 Read" in message
+    assert "① " in message
+    assert "② " in message
+    assert "③ " in message
 
 
-def test_empty_source_does_not_render_source_block() -> None:
-    message = build_telegram_message([make_article(source="  ")])
+def test_message_falls_back_to_normal_numbering_after_top_3() -> None:
+    message = build_telegram_message(
+        [
+            make_article("First"),
+            make_article("Second"),
+            make_article("Third"),
+            make_article("Fourth"),
+        ]
+    )
 
+    assert "4. " in message
+
+
+def test_message_uses_stars_not_numeric_score() -> None:
+    message = build_telegram_message([make_article(relevance_score=12)])
+
+    assert "⭐⭐⭐⭐⭐" in message
+    assert "12" not in message
+    assert "관련도 점수" not in message
+
+
+def test_message_renders_full_english_title() -> None:
+    title = "Google Shifts to AI Search, Heralding Major Change in How People Use the Internet"
+
+    message = build_telegram_message([make_article(title)])
+
+    assert title in message
+
+
+def test_message_renders_source_without_icon_label() -> None:
+    message = build_telegram_message([make_article(source="Reuters")])
+
+    assert "Reuters" in message
     assert "📂" not in message
 
 
-def test_non_empty_source_renders_source_block() -> None:
-    message = build_telegram_message([make_article(source="Example")])
+def test_empty_source_is_hidden() -> None:
+    message = build_telegram_message([make_article(source="  ")])
 
-    assert "📂 Example" in message
+    assert "\n  \n" not in message
+    assert "📂" not in message
 
 
-def test_message_hides_internal_labels_and_old_fields() -> None:
+def test_recommendation_reasons_render_under_selection_points() -> None:
+    message = build_telegram_message(
+        [
+            make_article(
+                recommendation_reasons=["신뢰도 높은 출처", "가격 / 비용 변화", "기업 도입"]
+            )
+        ]
+    )
+
+    assert "선정 포인트" in message
+    assert "• 신뢰도 높은 출처" in message
+    assert "• 가격 / 비용 변화" in message
+    assert "• 기업 도입" in message
+
+
+def test_empty_recommendation_reasons_hide_selection_points() -> None:
+    message = build_telegram_message([make_article(recommendation_reasons=[])])
+
+    assert "선정 포인트" not in message
+
+
+def test_quality_pass_reason_is_never_rendered() -> None:
+    message = build_telegram_message(
+        [
+            make_article(
+                recommendation_reasons=["저품질 패턴 없음", "신뢰도 높은 출처"]
+            )
+        ]
+    )
+
+    assert "저품질 패턴 없음" not in message
+    assert "• 신뢰도 높은 출처" in message
+
+
+def test_recommendation_reasons_are_capped_to_3() -> None:
+    message = build_telegram_message(
+        [
+            make_article(
+                recommendation_reasons=[
+                    "신뢰도 높은 출처",
+                    "가격 / 비용 변화",
+                    "기업 도입",
+                    "보안 사고",
+                ]
+            )
+        ]
+    )
+
+    assert "• 신뢰도 높은 출처" in message
+    assert "• 가격 / 비용 변화" in message
+    assert "• 기업 도입" in message
+    assert "보안 사고" not in message
+
+
+def test_internal_labels_are_not_rendered() -> None:
+    message = build_telegram_message(
+        [
+            make_article(
+                recommendation_reasons=[
+                    "AI Interface Shift",
+                    "Semiconductor Race",
+                    "반도체 공급망",
+                ]
+            )
+        ]
+    )
+
+    assert "AI Interface Shift" not in message
+    assert "Semiconductor Race" not in message
+    assert "• 반도체 공급망" in message
+
+
+def test_old_labels_are_absent() -> None:
     message = build_telegram_message([make_article()])
 
-    assert "관련도 점수" not in message
     assert "선정 이유" not in message
     assert "커리어 / 시장 인사이트" not in message
+    assert "Why it Matters" not in message
+    assert "Google Alerts" not in message
+    assert "근거:" not in message
+    assert "📝 Google Alerts" not in message
+    assert "💡 Why it Matters" not in message
     assert "주요 신호" not in message
     assert "보조 신호" not in message
     assert "AI Interface Shift" not in message
-    assert "Semiconductor Race" not in message
-    assert "relevance_score" not in message
 
 
-def test_message_hides_score_value() -> None:
-    message = build_telegram_message([make_article(relevance_score=42)])
-
-    assert "42" not in message
-
-
-def test_message_includes_snippet_under_google_alerts() -> None:
-    article = make_article()
-
-    message = build_telegram_message([article])
-
-    assert "📝 Google Alerts\nGoogle Alerts snippet with original English source text." in message
-
-
-def test_message_includes_evidence_when_snippet_exists() -> None:
-    message = build_telegram_message([make_article()])
-
-    assert "근거: Google Alerts snippet with original English source text." in message
-
-
-def test_message_omits_evidence_when_snippet_is_empty() -> None:
-    message = build_telegram_message([make_article(snippet="  ")])
-
-    assert "근거:" not in message
-
-
-def test_evidence_is_shorter_than_full_snippet() -> None:
-    snippet = (
-        "Google announced a boatload of new AI -powered features at its I/O keynote, "
-        "but most of them will launch behind paywalls. "
-        "This extra sentence should not fully appear in the evidence line."
-    )
-
-    message = build_telegram_message([make_article(snippet=snippet)])
-    evidence_line = next(line for line in message.splitlines() if line.startswith("근거:"))
-
-    assert "AI-powered" in message
-    assert evidence_line.startswith("근거: Google announced")
-    assert "This extra sentence should not fully appear in the evidence line." not in evidence_line
-
-
-def test_link_appears_after_read_label() -> None:
-    message = build_telegram_message([make_article()])
-
-    assert "🔗 Read\nhttps://example.com/article" in message
-
-
-def test_multiple_articles_repeat_article_cards() -> None:
+def test_separator_appears_between_articles_only() -> None:
     message = build_telegram_message([make_article("First"), make_article("Second")])
 
-    assert "📰 First" in message
-    assert "📰 Second" in message
+    assert message.count("────────────") == 1
+    assert not message.endswith("────────────")
+
+
+def test_link_uses_plain_read_label_without_markdown_parse_mode() -> None:
+    message = build_telegram_message([make_article(url="https://example.com/article")])
+
+    assert "🔗 Read\nhttps://example.com/article" in message
+    assert "[Read]" not in message

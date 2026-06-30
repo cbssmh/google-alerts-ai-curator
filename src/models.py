@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -19,3 +19,4 @@ class CuratedArticle:
     why_selected: str
     korean_summary: str
     career_market_insight: str
+    recommendation_reasons: list[str] = field(default_factory=list)

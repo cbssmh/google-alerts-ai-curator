@@ -1,3 +1,5 @@
+import re
+
 from src.models import Article, CuratedArticle
 
 
@@ -20,6 +22,204 @@ SOURCE_SCORES = {
     "the verge": 2,
     "wired": 2,
     "mit technology review": 2,
+}
+
+OFFICIAL_SOURCE_NAMES = {
+    "google blog",
+    "openai blog",
+    "anthropic blog",
+    "nvidia blog",
+    "microsoft blog",
+}
+
+EVENT_TYPE_CATEGORIES = [
+    (
+        "official_release",
+        "공식 발표",
+        2,
+        (
+            "launches",
+            "releases",
+            "announces",
+            "introduces",
+            "unveils",
+            "rolls out",
+            "preview",
+            "beta",
+            "ga",
+            "available",
+        ),
+    ),
+    (
+        "pricing_cost",
+        "가격 / 비용 변화",
+        4,
+        (
+            "pricing",
+            "price cut",
+            "raises prices",
+            "subscription",
+            "paid tier",
+            "cost",
+            "margin",
+            "inference cost",
+            "api pricing",
+            "cheaper",
+            "budget",
+            "usage cap",
+        ),
+    ),
+    (
+        "infrastructure_investment",
+        "인프라 투자",
+        4,
+        (
+            "data center",
+            "datacenter",
+            "capex",
+            "buildout",
+            "capacity expansion",
+            "power grid",
+            "cloud infrastructure",
+            "gpu cluster",
+            "infrastructure investment",
+            "ai infrastructure",
+        ),
+    ),
+    (
+        "semiconductor_supply_chain",
+        "반도체 공급망",
+        4,
+        (
+            "chip",
+            "chips",
+            "semiconductor",
+            "gpu",
+            "hbm",
+            "foundry",
+            "fab",
+            "wafer",
+            "yield",
+            "packaging",
+            "cowos",
+            "tsmc",
+            "sk hynix",
+            "samsung",
+            "lithography",
+            "node",
+        ),
+    ),
+    (
+        "government_regulation",
+        "정부 / 규제",
+        3,
+        (
+            "regulation",
+            "policy",
+            "law",
+            "antitrust",
+            "executive order",
+            "white house",
+            "eu ai act",
+            "lawmakers",
+            "ftc",
+            "doj",
+            "sovereign ai",
+        ),
+    ),
+    (
+        "developer_ecosystem",
+        "개발자 생태계",
+        4,
+        (
+            "api",
+            "sdk",
+            "documentation",
+            "github",
+            "open source",
+            "release notes",
+            "framework",
+            "developer preview",
+            "tooling",
+            "app store",
+            "marketplace",
+        ),
+    ),
+    (
+        "enterprise_adoption",
+        "기업 도입",
+        3,
+        (
+            "enterprise",
+            "workplace",
+            "copilot",
+            "productivity",
+            "workflow",
+            "customer",
+            "deployment",
+            "rollout",
+            "procurement",
+        ),
+    ),
+    (
+        "security_incident",
+        "보안 사고",
+        4,
+        (
+            "breach",
+            "vulnerability",
+            "exploit",
+            "jailbreak",
+            "prompt injection",
+            "data exposure",
+            "cve",
+            "security flaw",
+            "incident",
+        ),
+    ),
+    (
+        "product_platform_strategy",
+        "제품 / 플랫폼 전략",
+        3,
+        (
+            "operating system",
+            "default integration",
+            "distribution deal",
+            "bundle",
+            "partnership",
+            "ecosystem",
+            "app marketplace",
+            "product strategy",
+            "platform strategy",
+        ),
+    ),
+    (
+        "funding_ipo_ma",
+        "투자 / IPO / M&A",
+        4,
+        (
+            "funding",
+            "valuation",
+            "ipo",
+            "market debut",
+            "acquires",
+            "merger",
+            "stake",
+            "investment round",
+            "takeover",
+        ),
+    ),
+]
+
+EVENT_SCORE_ONLY_CATEGORIES = {
+    "official_release",
+    "pricing_cost",
+    "infrastructure_investment",
+    "semiconductor_supply_chain",
+    "government_regulation",
+    "security_incident",
+    "product_platform_strategy",
+    "funding_ipo_ma",
 }
 
 TITLE_BOOSTS = (
@@ -132,10 +332,14 @@ SIGNAL_CATEGORIES = [
 
 LOW_VALUE_PATTERNS = (
     (("celebrity", "viral", "meme", "funny", "rumor"), -3),
-    (("top 10", "things you need to know"), -2),
-    (("fear", "scary", "terrifying", "anxiety", "emotional reaction"), -3),
+    (("top 10", "best tools", "ultimate guide", "things you need to know"), -3),
+    (("fear", "fears", "scary", "terrifying", "anxiety", "emotional reaction"), -3),
     (("culture war", "backlash", "outrage", "panic"), -3),
     (("ai will take your job", "ai replacing jobs", "jobs panic"), -2),
+    (("rumored", "reportedly", "may", "could", "might", "leak", "unconfirmed"), -2),
+    (("stock to buy", "soars", "surges", "multibagger", "price target", "penny stock"), -4),
+    (("coupon", "deal", "review", "vs", "alternative"), -2),
+    (("shocking", "you won't believe"), -3),
 )
 
 
@@ -145,9 +349,24 @@ def select_high_signal_articles(
 ) -> list[CuratedArticle]:
     scored_articles = []
     for article in articles:
-        score, source_name, signals, primary_signal = _score_article(article)
+        (
+            score,
+            source_name,
+            signals,
+            primary_signal,
+            recommendation_reasons,
+        ) = _score_article(article)
         if score >= 4:
-            scored_articles.append((score, article, source_name, signals, primary_signal))
+            scored_articles.append(
+                (
+                    score,
+                    article,
+                    source_name,
+                    signals,
+                    primary_signal,
+                    recommendation_reasons,
+                )
+            )
 
     scored_articles.sort(key=lambda item: item[0], reverse=True)
 
@@ -161,12 +380,20 @@ def select_high_signal_articles(
             why_selected=_build_why_selected(article, source_name, signals, primary_signal),
             korean_summary="본문 요약은 생성하지 않았습니다. 원문 제목과 링크를 기준으로 선별했습니다.",
             career_market_insight=_build_career_market_insight(primary_signal),
+            recommendation_reasons=recommendation_reasons,
         )
-        for score, article, source_name, signals, primary_signal in scored_articles[:limit]
+        for (
+            score,
+            article,
+            source_name,
+            signals,
+            primary_signal,
+            recommendation_reasons,
+        ) in scored_articles[:limit]
     ]
 
 
-def _score_article(article: Article) -> tuple[int, str, list[str], str]:
+def _score_article(article: Article) -> tuple[int, str, list[str], str, list[str]]:
     text = " ".join([article.title, article.source, article.snippet]).lower()
     score = 0
     matched_source = ""
@@ -178,23 +405,33 @@ def _score_article(article: Article) -> tuple[int, str, list[str], str]:
             score += points
             _add_signal_match(matched_signals, signal_scores, category, points)
 
-    for source, source_score in SOURCE_SCORES.items():
-        if source in article.source.lower() or source in text:
-            score += source_score
-            matched_source = source
-            break
+    matched_source = _match_trusted_source(article.source)
+    if matched_source:
+        score += SOURCE_SCORES[matched_source]
 
     for category, points, keywords, label, _insight in SIGNAL_CATEGORIES:
         if any(keyword in text for keyword in keywords):
             score += points
             _add_signal_match(matched_signals, signal_scores, category, points)
 
+    matched_event_types = _match_event_types(text, matched_source)
+    for code, _label, points in matched_event_types:
+        if code in EVENT_SCORE_ONLY_CATEGORIES:
+            score += points
+
     for patterns, penalty in LOW_VALUE_PATTERNS:
-        if any(pattern in text for pattern in patterns):
+        if any(_contains_pattern(text, pattern) for pattern in patterns):
             score += penalty
 
+    if _is_question_headline(article.title):
+        score -= 2
+
     primary_signal = _select_primary_signal(matched_signals, signal_scores)
-    return score, matched_source, matched_signals, primary_signal
+    recommendation_reasons = _build_recommendation_reasons(
+        matched_source,
+        matched_event_types,
+    )
+    return score, matched_source, matched_signals, primary_signal, recommendation_reasons
 
 
 def _append_unique(items: list[str], item: str) -> None:
@@ -220,6 +457,78 @@ def _select_primary_signal(
         return ""
 
     return max(matched_signals, key=lambda signal: signal_scores.get(signal, 0))
+
+
+def _match_trusted_source(source_text: str) -> str:
+    normalized_source = source_text.lower()
+    for source in SOURCE_SCORES:
+        if source in normalized_source:
+            return source
+
+    return ""
+
+
+def _match_event_types(text: str, matched_source: str) -> list[tuple[str, str, int]]:
+    matched_event_types = []
+    for code, label, points, patterns in EVENT_TYPE_CATEGORIES:
+        if any(_contains_pattern(text, pattern) for pattern in patterns):
+            matched_event_types.append((code, label, points))
+
+    if matched_source in OFFICIAL_SOURCE_NAMES:
+        _append_event_type(matched_event_types, "official_release")
+
+    return matched_event_types
+
+
+def _append_event_type(
+    matched_event_types: list[tuple[str, str, int]],
+    code: str,
+) -> None:
+    if any(matched_code == code for matched_code, _label, _points in matched_event_types):
+        return
+
+    for event_code, label, points, _patterns in EVENT_TYPE_CATEGORIES:
+        if event_code == code:
+            matched_event_types.append((event_code, label, points))
+            return
+
+
+def _build_recommendation_reasons(
+    matched_source: str,
+    matched_event_types: list[tuple[str, str, int]],
+    limit: int = 3,
+) -> list[str]:
+    reasons = []
+    if matched_source:
+        reasons.append("신뢰도 높은 출처")
+
+    for _code, label, _points in sorted(
+        matched_event_types,
+        key=lambda event_type: event_type[2],
+        reverse=True,
+    ):
+        _append_unique(reasons, label)
+        if len(reasons) == limit:
+            return reasons
+
+    return reasons[:limit]
+
+
+def _is_question_headline(title: str) -> bool:
+    normalized_title = " ".join(title.split()).strip()
+    headline_before_source = normalized_title.split(" | ", 1)[0].strip()
+    return normalized_title.endswith("?") or headline_before_source.endswith("?")
+
+
+def _contains_pattern(text: str, pattern: str) -> bool:
+    if pattern == "may":
+        return re.search(r"\bmay\b(?!\s+\d)", text) is not None
+
+    escaped_pattern = re.escape(pattern.lower())
+    escaped_pattern = escaped_pattern.replace(r"\ ", r"\s+")
+    prefix = r"\b" if pattern[0].isalnum() else ""
+    suffix = r"\b" if pattern[-1].isalnum() else ""
+    return re.search(prefix + escaped_pattern + suffix, text) is not None
 
 
 def _build_why_selected(
@@ -290,3 +599,13 @@ def _shorten_evidence(text: str, max_length: int = 160) -> str:
         return normalized
 
     return normalized[: max_length - 3].rstrip() + "..."
+
+
+def score_to_stars(score: int) -> str:
+    if score >= 12:
+        return "⭐⭐⭐⭐⭐"
+
+    if score >= 8:
+        return "⭐⭐⭐⭐☆"
+
+    return "⭐⭐⭐☆☆"
