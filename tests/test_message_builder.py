@@ -38,7 +38,7 @@ def test_message_includes_final_header() -> None:
     assert "Daily High-Signal Tech Alerts" in message
 
 
-def test_message_uses_circled_numbering_for_top_3() -> None:
+def test_numbering_is_not_rendered() -> None:
     message = build_telegram_message(
         [
             make_article("First"),
@@ -47,45 +47,34 @@ def test_message_uses_circled_numbering_for_top_3() -> None:
         ]
     )
 
-    assert "①\n" in message
-    assert "②\n" in message
-    assert "③\n" in message
+    assert "①" not in message
+    assert "②" not in message
+    assert "③" not in message
+    assert "1." not in message
 
 
-def test_message_falls_back_to_normal_numbering_after_top_3() -> None:
-    message = build_telegram_message(
-        [
-            make_article("First"),
-            make_article("Second"),
-            make_article("Third"),
-            make_article("Fourth"),
-        ]
-    )
+def test_recommendation_tier_is_rendered() -> None:
+    message = build_telegram_message([make_article(relevance_score=20)])
 
-    assert "4.\n" in message
+    assert "🏆 ESSENTIAL" in message
 
 
-def test_recommendation_rating_appears_below_title() -> None:
-    title = "Original AI Title"
+def test_recommendation_tier_mapping_works() -> None:
+    essential = build_telegram_message([make_article(relevance_score=20)])
+    recommended = build_telegram_message([make_article(relevance_score=8)])
+    worth_a_look = build_telegram_message([make_article(relevance_score=4)])
 
-    message = build_telegram_message([make_article(title=title, relevance_score=8)])
-
-    assert f"{title}\n\n추천도\n\n⭐⭐⭐⭐☆ (4.5/5)" in message
-
-
-def test_recommendation_rating_maps_score_ranges() -> None:
-    five = build_telegram_message([make_article(relevance_score=12)])
-    four_half = build_telegram_message([make_article(relevance_score=8)])
-    three = build_telegram_message([make_article(relevance_score=4)])
-
-    assert "⭐⭐⭐⭐⭐ (5.0/5)" in five
-    assert "⭐⭐⭐⭐☆ (4.5/5)" in four_half
-    assert "⭐⭐⭐☆☆ (3.0/5)" in three
+    assert "🏆 ESSENTIAL" in essential
+    assert "✅ RECOMMENDED" in recommended
+    assert "👀 WORTH A LOOK" in worth_a_look
 
 
-def test_internal_numeric_score_is_not_shown() -> None:
+def test_stars_and_numeric_rating_are_removed() -> None:
     message = build_telegram_message([make_article(relevance_score=23)])
 
+    assert "⭐" not in message
+    assert "/5" not in message
+    assert "추천도" not in message
     assert "23" not in message
     assert "관련도 점수" not in message
 
@@ -111,7 +100,7 @@ def test_article_text_is_html_escaped() -> None:
     assert "OpenAI &amp; Google &lt;launch&gt; \"AI\"" in message
 
 
-def test_recommendation_reasons_render_under_selection_points() -> None:
+def test_key_signals_render_when_reasons_exist() -> None:
     message = build_telegram_message(
         [
             make_article(
@@ -120,16 +109,16 @@ def test_recommendation_reasons_render_under_selection_points() -> None:
         ]
     )
 
-    assert "선정 포인트\n\n" in message
+    assert "Key Signals\n\n" in message
     assert "• 신뢰도 높은 출처" in message
     assert "• 가격 / 비용 변화" in message
     assert "• 기업 도입" in message
 
 
-def test_empty_recommendation_reasons_hide_selection_points() -> None:
+def test_key_signals_hidden_when_reasons_are_empty() -> None:
     message = build_telegram_message([make_article(recommendation_reasons=[])])
 
-    assert "선정 포인트" not in message
+    assert "Key Signals" not in message
 
 
 def test_quality_pass_reason_is_never_rendered() -> None:
@@ -186,6 +175,7 @@ def test_internal_labels_are_not_rendered() -> None:
 def test_old_labels_are_absent() -> None:
     message = build_telegram_message([make_article()])
 
+    assert "선정 포인트" not in message
     assert "선정 이유" not in message
     assert "커리어 / 시장 인사이트" not in message
     assert "Why it Matters" not in message
@@ -202,6 +192,13 @@ def test_separator_is_not_rendered() -> None:
     message = build_telegram_message([make_article("First"), make_article("Second")])
 
     assert "────────────" not in message
+
+
+def test_two_blank_lines_separate_article_cards() -> None:
+    message = build_telegram_message([make_article("First"), make_article("Second")])
+
+    first_link_end = '</a>'
+    assert f"{first_link_end}\n\n\n✅ RECOMMENDED" in message
 
 
 def test_link_uses_html_anchor_and_hides_visible_raw_url() -> None:

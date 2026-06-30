@@ -1,14 +1,6 @@
 from html import escape
 
 from src.models import CuratedArticle
-from src.rule_based_selector import score_to_stars
-
-
-CIRCLED_NUMBERS = {
-    1: "①",
-    2: "②",
-    3: "③",
-}
 
 INTERNAL_REASON_LABELS = {
     "저품질 패턴 없음",
@@ -20,12 +12,6 @@ INTERNAL_REASON_LABELS = {
     "Ecosystem Competition",
     "AI Interface Shift",
     "Semiconductor Race",
-}
-
-STAR_RATINGS = {
-    "⭐⭐⭐⭐⭐": "5.0/5",
-    "⭐⭐⭐⭐☆": "4.5/5",
-    "⭐⭐⭐☆☆": "3.0/5",
 }
 
 
@@ -45,28 +31,29 @@ def build_telegram_message(
 
 
 def _build_article_section(index: int, article: CuratedArticle) -> str:
-    stars = score_to_stars(article.relevance_score)
     lines = [
-        _rank_label(index),
+        _recommendation_tier(article.relevance_score),
         "",
         _escape_text(_clean_text(article.title)),
-        "",
-        "추천도",
-        "",
-        f"{stars} ({STAR_RATINGS[stars]})",
     ]
 
     reasons = _reader_facing_reasons(article.recommendation_reasons)
     if reasons:
-        lines.extend(["", "선정 포인트", ""])
+        lines.extend(["", "Key Signals", ""])
         lines.extend(f"• {_escape_text(reason)}" for reason in reasons)
 
     lines.extend(["", f'🔗 <a href="{_escape_attr(article.url)}">Read</a>'])
     return "\n".join(lines)
 
 
-def _rank_label(index: int) -> str:
-    return CIRCLED_NUMBERS.get(index, f"{index}.")
+def _recommendation_tier(score: int) -> str:
+    if score >= 20:
+        return "🏆 ESSENTIAL"
+
+    if score >= 8:
+        return "✅ RECOMMENDED"
+
+    return "👀 WORTH A LOOK"
 
 
 def _reader_facing_reasons(reasons: list[str], limit: int = 3) -> list[str]:
