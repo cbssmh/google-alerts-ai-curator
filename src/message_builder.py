@@ -33,16 +33,15 @@ def build_telegram_message(
 def _build_article_section(index: int, article: CuratedArticle) -> str:
     lines = [
         _recommendation_tier(article.relevance_score),
-        "",
         _escape_text(_clean_text(article.title)),
     ]
 
     reasons = _reader_facing_reasons(article.recommendation_reasons)
     if reasons:
-        lines.extend(["", "Key Signals", ""])
-        lines.extend(f"• {_escape_text(reason)}" for reason in reasons)
+        signals = " · ".join(_escape_text(reason) for reason in reasons)
+        lines.append(f"Key Signals: {signals}")
 
-    lines.extend(["", f'🔗 <a href="{_escape_attr(article.url)}">Read</a>'])
+    lines.append(f'🔗 <a href="{_escape_attr(article.url)}">Read</a>')
     return "\n".join(lines)
 
 

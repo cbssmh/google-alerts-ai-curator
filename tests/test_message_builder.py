@@ -109,10 +109,8 @@ def test_key_signals_render_when_reasons_exist() -> None:
         ]
     )
 
-    assert "Key Signals\n\n" in message
-    assert "• 신뢰도 높은 출처" in message
-    assert "• 가격 / 비용 변화" in message
-    assert "• 기업 도입" in message
+    assert "Key Signals: 신뢰도 높은 출처 · 가격 / 비용 변화 · 기업 도입" in message
+    assert "•" not in message
 
 
 def test_key_signals_hidden_when_reasons_are_empty() -> None:
@@ -131,7 +129,7 @@ def test_quality_pass_reason_is_never_rendered() -> None:
     )
 
     assert "저품질 패턴 없음" not in message
-    assert "• 신뢰도 높은 출처" in message
+    assert "Key Signals: 신뢰도 높은 출처" in message
 
 
 def test_recommendation_reasons_are_capped_to_3() -> None:
@@ -148,9 +146,7 @@ def test_recommendation_reasons_are_capped_to_3() -> None:
         ]
     )
 
-    assert "• 신뢰도 높은 출처" in message
-    assert "• 가격 / 비용 변화" in message
-    assert "• 기업 도입" in message
+    assert "Key Signals: 신뢰도 높은 출처 · 가격 / 비용 변화 · 기업 도입" in message
     assert "보안 사고" not in message
 
 
@@ -169,7 +165,7 @@ def test_internal_labels_are_not_rendered() -> None:
 
     assert "AI Interface Shift" not in message
     assert "Semiconductor Race" not in message
-    assert "• 반도체 공급망" in message
+    assert "Key Signals: 반도체 공급망" in message
 
 
 def test_old_labels_are_absent() -> None:
@@ -199,6 +195,25 @@ def test_two_blank_lines_separate_article_cards() -> None:
 
     first_link_end = '</a>'
     assert f"{first_link_end}\n\n\n✅ RECOMMENDED" in message
+
+
+def test_no_blank_lines_inside_article_cards() -> None:
+    message = build_telegram_message([make_article()])
+    card = message.split("\n\n", 1)[1]
+
+    assert "\n\n" not in card
+
+
+def test_key_signals_multiple_reasons_use_middle_dot_separator() -> None:
+    message = build_telegram_message(
+        [
+            make_article(
+                recommendation_reasons=["반도체 공급망", "투자 / IPO / M&A"]
+            )
+        ]
+    )
+
+    assert "Key Signals: 반도체 공급망 · 투자 / IPO / M&amp;A" in message
 
 
 def test_link_uses_html_anchor_and_hides_visible_raw_url() -> None:
