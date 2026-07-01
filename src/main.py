@@ -69,6 +69,18 @@ def main() -> None:
         print("No Telegram message generated.")
         return
 
+    first_article = curated_articles[0]
+    print(f"OPENAI_API_KEY set: {bool(openai_api_key)}")
+    print(f"curated_articles count: {len(curated_articles)}")
+    print(f"first curated article source: {first_article.source}")
+    print(
+        "first curated article recommendation_reasons: "
+        f"{first_article.recommendation_reasons}"
+    )
+    print("--- TELEGRAM MESSAGE DEBUG START ---")
+    print(message)
+    print("--- TELEGRAM MESSAGE DEBUG END ---")
+
     sent = send_telegram_message(
         env["TELEGRAM_BOT_TOKEN"],
         env["TELEGRAM_CHAT_ID"],
