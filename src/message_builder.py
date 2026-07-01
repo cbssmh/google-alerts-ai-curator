@@ -41,7 +41,9 @@ def _build_article_section(index: int, article: CuratedArticle) -> str:
         signals = " · ".join(_escape_text(reason) for reason in reasons)
         lines.append(f"Key Signals: {signals}")
 
-    lines.append(f'🔗 <a href="{_escape_attr(article.url)}">Read</a>')
+    lines.append(
+        f'🔗 <a href="{_escape_attr(article.url)}">{_read_link_label(article.source)}</a>'
+    )
     return "\n".join(lines)
 
 
@@ -69,6 +71,14 @@ def _reader_facing_reasons(reasons: list[str], limit: int = 3) -> list[str]:
             break
 
     return reader_facing
+
+
+def _read_link_label(source: str) -> str:
+    cleaned_source = _clean_text(source)
+    if not cleaned_source:
+        return "Read"
+
+    return f"Read on {_escape_text(cleaned_source)}"
 
 
 def _clean_text(text: str) -> str:

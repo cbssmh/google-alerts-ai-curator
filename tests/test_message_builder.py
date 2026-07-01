@@ -219,8 +219,23 @@ def test_key_signals_multiple_reasons_use_middle_dot_separator() -> None:
 def test_link_uses_html_anchor_and_hides_visible_raw_url() -> None:
     message = build_telegram_message([make_article(url="https://example.com/article")])
 
-    assert '🔗 <a href="https://example.com/article">Read</a>' in message
+    assert '🔗 <a href="https://example.com/article">Read on Example</a>' in message
     assert "\nhttps://example.com/article" not in message
+
+
+def test_link_falls_back_to_read_when_source_is_empty() -> None:
+    message = build_telegram_message(
+        [make_article(source=" ", url="https://example.com/article")]
+    )
+
+    assert '🔗 <a href="https://example.com/article">Read</a>' in message
+    assert "Read on" not in message
+
+
+def test_link_source_label_is_html_escaped() -> None:
+    message = build_telegram_message([make_article(source="AT&T <Labs>")])
+
+    assert "Read on AT&amp;T &lt;Labs&gt;" in message
 
 
 def test_link_url_is_html_attribute_escaped() -> None:
