@@ -100,7 +100,7 @@ def test_article_text_is_html_escaped() -> None:
     assert "OpenAI &amp; Google &lt;launch&gt; \"AI\"" in message
 
 
-def test_key_signals_render_when_reasons_exist() -> None:
+def test_why_selected_renders_when_reasons_exist() -> None:
     message = build_telegram_message(
         [
             make_article(
@@ -109,13 +109,15 @@ def test_key_signals_render_when_reasons_exist() -> None:
         ]
     )
 
-    assert "Key Signals: 신뢰도 높은 출처 · 가격 / 비용 변화 · 기업 도입" in message
+    assert "Why selected: 신뢰도 높은 출처 · 가격 / 비용 변화 · 기업 도입" in message
+    assert "Key Signals" not in message
     assert "•" not in message
 
 
-def test_key_signals_hidden_when_reasons_are_empty() -> None:
+def test_why_selected_hidden_when_reasons_are_empty() -> None:
     message = build_telegram_message([make_article(recommendation_reasons=[])])
 
+    assert "Why selected:" not in message
     assert "Key Signals" not in message
 
 
@@ -129,7 +131,7 @@ def test_quality_pass_reason_is_never_rendered() -> None:
     )
 
     assert "저품질 패턴 없음" not in message
-    assert "Key Signals: 신뢰도 높은 출처" in message
+    assert "Why selected: 신뢰도 높은 출처" in message
 
 
 def test_recommendation_reasons_are_capped_to_3() -> None:
@@ -146,7 +148,7 @@ def test_recommendation_reasons_are_capped_to_3() -> None:
         ]
     )
 
-    assert "Key Signals: 신뢰도 높은 출처 · 가격 / 비용 변화 · 기업 도입" in message
+    assert "Why selected: 신뢰도 높은 출처 · 가격 / 비용 변화 · 기업 도입" in message
     assert "보안 사고" not in message
 
 
@@ -165,13 +167,14 @@ def test_internal_labels_are_not_rendered() -> None:
 
     assert "AI Interface Shift" not in message
     assert "Semiconductor Race" not in message
-    assert "Key Signals: 반도체 공급망" in message
+    assert "Why selected: 반도체 공급망" in message
 
 
 def test_old_labels_are_absent() -> None:
     message = build_telegram_message([make_article()])
 
     assert "선정 포인트" not in message
+    assert "Key Signals" not in message
     assert "선정 이유" not in message
     assert "커리어 / 시장 인사이트" not in message
     assert "Why it Matters" not in message
@@ -204,7 +207,7 @@ def test_no_blank_lines_inside_article_cards() -> None:
     assert "\n\n" not in card
 
 
-def test_key_signals_multiple_reasons_use_middle_dot_separator() -> None:
+def test_why_selected_multiple_reasons_use_middle_dot_separator() -> None:
     message = build_telegram_message(
         [
             make_article(
@@ -213,7 +216,7 @@ def test_key_signals_multiple_reasons_use_middle_dot_separator() -> None:
         ]
     )
 
-    assert "Key Signals: 반도체 공급망 · 투자 / IPO / M&amp;A" in message
+    assert "Why selected: 반도체 공급망 · 투자 / IPO / M&amp;A" in message
 
 
 def test_link_uses_html_anchor_and_hides_visible_raw_url() -> None:

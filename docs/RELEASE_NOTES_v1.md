@@ -39,7 +39,7 @@ The selector favors concrete news structures over broad AI buzzwords. Examples i
 
 ### Recommendation Evidence
 
-The selector records reader-facing recommendation reasons separately from internal scoring math. Telegram shows compact `Key Signals` instead of exposing score formulas or developer-facing labels.
+The selector records reader-facing recommendation reasons separately from internal scoring math. Telegram shows compact `Why selected` evidence instead of exposing score formulas or developer-facing labels.
 
 ### Structural Signals
 

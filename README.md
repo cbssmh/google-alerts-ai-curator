@@ -15,13 +15,13 @@ Daily High-Signal Tech Alerts
 
 🏆 ESSENTIAL
 South Korea's $518 billion AI chip push shows crypto is still losing the capital race
-Key Signals: 반도체 공급망
+Why selected: 반도체 공급망
 🔗 Read on Reuters
 
 
 ✅ RECOMMENDED
 Baidu shares jump 7% as AI chip arm Kunlunxin said to target $50 billion Hong Kong IPO
-Key Signals: 반도체 공급망 · 투자 / IPO / M&A
+Why selected: 반도체 공급망 · 투자 / IPO / M&A
 🔗 Read on CNBC
 ```
 

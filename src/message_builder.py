@@ -39,7 +39,7 @@ def _build_article_section(index: int, article: CuratedArticle) -> str:
     reasons = _reader_facing_reasons(article.recommendation_reasons)
     if reasons:
         signals = " · ".join(_escape_text(reason) for reason in reasons)
-        lines.append(f"Key Signals: {signals}")
+        lines.append(f"Why selected: {signals}")
 
     lines.append(
         f'🔗 <a href="{_escape_attr(article.url)}">{_read_link_label(article.source)}</a>'
