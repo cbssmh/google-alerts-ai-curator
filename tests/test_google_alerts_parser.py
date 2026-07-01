@@ -2,10 +2,13 @@ from email import policy
 from email.parser import BytesParser
 from pathlib import Path
 
+import pytest
+
 from src.google_alerts_parser import parse_google_alerts_email
 
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "google_alerts" / "sample_01.eml"
+GOOGLE_ALERTS_FIXTURE_DIR = Path(__file__).parent / "google_alerts"
 
 
 def load_html_fixture() -> str:
@@ -79,6 +82,68 @@ def test_parse_google_alerts_email_extracts_source_from_title_text() -> None:
 
     assert articles[0].title == "100 things we announced at I/O 2026"
     assert articles[0].source == "Google Blog"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "Reuters",
+        "Bloomberg",
+        "CNBC",
+        "The Economist",
+        "Financial Times",
+        "The New York Times",
+    ],
+)
+def test_parse_google_alerts_email_extracts_known_pipe_suffix_source(
+    source: str,
+) -> None:
+    html = f"""
+    <a href="https://example.com/article">
+      Samsung, SK Hynix mega South Korea chips gamble tests optimism of AI cycle | {source}
+    </a>
+    """
+
+    articles = parse_google_alerts_email(html)
+
+    assert (
+        articles[0].title
+        == "Samsung, SK Hynix mega South Korea chips gamble tests optimism of AI cycle"
+    )
+    assert articles[0].source == source
+
+
+def test_parse_google_alerts_email_leaves_title_without_known_suffix_unchanged() -> None:
+    html = """
+    <a href="https://example.com/article">
+      Nvidia | AMD battle heats up
+    </a>
+    """
+
+    articles = parse_google_alerts_email(html)
+
+    assert articles[0].title == "Nvidia | AMD battle heats up"
+    assert articles[0].source == ""
+
+
+def test_google_alerts_fixtures_still_parse_articles() -> None:
+    fixture_paths = sorted(GOOGLE_ALERTS_FIXTURE_DIR.glob("sample_*.eml"))
+
+    assert fixture_paths
+
+    for fixture_path in fixture_paths:
+        with fixture_path.open("rb") as fixture:
+            message = BytesParser(policy=policy.default).parse(fixture)
+
+        html = ""
+        for part in message.walk():
+            if part.get_content_type() == "text/html":
+                html = part.get_content()
+                break
+
+        articles = parse_google_alerts_email(html)
+
+        assert articles, fixture_path.name
 
 
 def test_parse_google_alerts_email_extracts_article_description() -> None:

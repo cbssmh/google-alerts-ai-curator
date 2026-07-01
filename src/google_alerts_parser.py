@@ -6,6 +6,16 @@ from src.models import Article
 from src.url_normalizer import normalize_url
 
 
+PIPE_SUFFIX_SOURCES = {
+    "bloomberg",
+    "cnbc",
+    "financial times",
+    "reuters",
+    "the economist",
+    "the new york times",
+}
+
+
 def parse_google_alerts_email(html: str) -> list[Article]:
     soup = BeautifulSoup(html or "", "html.parser")
     articles: list[Article] = []
@@ -82,10 +92,22 @@ def _is_url_text_only(text: str) -> bool:
 
 def _split_title_and_source(text: str) -> tuple[str, str]:
     title, separator, source = text.rpartition(" - ")
+    if separator:
+        return title, source
+
+    return _split_pipe_source_suffix(text)
+
+
+def _split_pipe_source_suffix(text: str) -> tuple[str, str]:
+    title, separator, source = text.rpartition(" | ")
     if not separator:
         return text, ""
 
-    return title, source
+    source = source.strip()
+    if source.lower() not in PIPE_SUFFIX_SOURCES:
+        return text, ""
+
+    return title.strip(), source
 
 
 def _extract_snippet(link) -> str:

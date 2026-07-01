@@ -30,11 +30,5 @@ jobs:
       - name: Run tests
         run: python -m pytest
 
-      - name: Debug formatter version
-        run: |
-          git rev-parse HEAD
-          git log --oneline -1
-          grep -n "Why selected\\|Key Signals\\|Read on" src/message_builder.py
-
       - name: Run curator
         run: python -m src.main
