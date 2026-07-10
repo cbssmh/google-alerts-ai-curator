@@ -6,6 +6,7 @@ import pytest
 
 from scripts import smoke_test_nvidia_enhancer as smoke_module
 from src.dedup_store import DedupStore
+from src.message_enhancer import LLMEnhancementError
 from src.rule_based_selector import select_high_signal_articles
 
 
@@ -102,12 +103,14 @@ def test_smoke_test_reuses_enhancer_builder_and_sender_without_dedup(
         model,
         base_url=None,
         timeout_seconds=None,
+        raise_on_error=False,
     ):
         calls["enhancer"] = True
         assert api_key == env["NVIDIA_API_KEY"]
         assert model == env["NVIDIA_MODEL"]
         assert base_url == "https://integrate.api.nvidia.com/v1"
         assert timeout_seconds == 60.0
+        assert raise_on_error is True
         return enhanced_articles_from(articles), ["AI 인프라와 기업 AI 도입"]
 
     def fake_build_telegram_message(
@@ -199,6 +202,7 @@ def test_llm_failure_fails_workflow_before_telegram(monkeypatch, capsys) -> None
         model,
         base_url=None,
         timeout_seconds=None,
+        raise_on_error=False,
     ):
         return articles, []
 
@@ -235,6 +239,7 @@ def test_telegram_failure_fails_workflow(monkeypatch, capsys) -> None:
         model,
         base_url=None,
         timeout_seconds=None,
+        raise_on_error=False,
     ):
         return enhanced_articles_from(articles), []
 
@@ -268,6 +273,7 @@ def test_confidence_and_evidence_only_do_not_count_as_llm_success(
         model,
         base_url=None,
         timeout_seconds=None,
+        raise_on_error=False,
     ):
         return [
             replace(article, confidence="low", evidence=["HBM"])
@@ -285,6 +291,8 @@ def test_confidence_and_evidence_only_do_not_count_as_llm_success(
 
     logged_text = capsys.readouterr().out
     assert "llm_enhancement_success: false" in logged_text
+    assert "llm_error_stage: no_usable_enhancement" in logged_text
+    assert "llm_error_message: No user-visible enhancement fields survived validation." in logged_text
 
 
 def test_display_field_counts_as_llm_success() -> None:
@@ -303,3 +311,69 @@ def test_display_field_counts_as_llm_success() -> None:
     ]
 
     assert smoke_module._has_usable_enhancement(articles) is True
+
+
+def test_strict_llm_error_is_logged_without_secrets(monkeypatch, capsys) -> None:
+    env = make_env()
+
+    def fake_enhance_message_with_llm(
+        articles,
+        api_key,
+        model,
+        base_url=None,
+        timeout_seconds=None,
+        raise_on_error=False,
+    ):
+        assert raise_on_error is True
+        raise LLMEnhancementError(
+            "api_request_failed",
+            "RuntimeError: Authorization: Bearer [REDACTED] failed",
+        )
+
+    monkeypatch.setattr(
+        smoke_module,
+        "enhance_message_with_llm",
+        fake_enhance_message_with_llm,
+    )
+
+    with pytest.raises(smoke_module.SmokeTestError, match="api_request_failed"):
+        smoke_module.run_smoke_test(env)
+
+    logged_text = capsys.readouterr().out
+    assert "llm_error_stage: api_request_failed" in logged_text
+    assert "llm_error_message: RuntimeError: Authorization: Bearer [REDACTED] failed" in logged_text
+    assert env["NVIDIA_API_KEY"] not in logged_text
+    assert env["TELEGRAM_BOT_TOKEN"] not in logged_text
+    assert env["TELEGRAM_CHAT_ID"] not in logged_text
+
+
+def test_strict_parse_error_excerpt_is_logged_with_limit(monkeypatch, capsys) -> None:
+    env = make_env()
+    response_excerpt = "x" * 500
+
+    def fake_enhance_message_with_llm(
+        articles,
+        api_key,
+        model,
+        base_url=None,
+        timeout_seconds=None,
+        raise_on_error=False,
+    ):
+        raise LLMEnhancementError(
+            "parse_failed",
+            "LLM response was not valid JSON.",
+            response_excerpt=response_excerpt,
+        )
+
+    monkeypatch.setattr(
+        smoke_module,
+        "enhance_message_with_llm",
+        fake_enhance_message_with_llm,
+    )
+
+    with pytest.raises(smoke_module.SmokeTestError, match="parse_failed"):
+        smoke_module.run_smoke_test(env)
+
+    logged_text = capsys.readouterr().out
+    assert "llm_error_stage: parse_failed" in logged_text
+    assert f"llm_response_excerpt: {response_excerpt}" in logged_text

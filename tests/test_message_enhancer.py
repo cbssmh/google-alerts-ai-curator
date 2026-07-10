@@ -2,6 +2,7 @@ import json
 
 from src import message_enhancer as message_enhancer_module
 from src.message_enhancer import (
+    LLMEnhancementError,
     build_message_enhancement_prompt,
     enhance_message_with_llm,
     parse_message_enhancement_response,
@@ -315,3 +316,91 @@ def test_enhance_message_with_llm_passes_timeout_to_openai_client(monkeypatch) -
         "timeout": 60.0,
     }
     assert enhanced_articles[0].korean_title == "삼성과 SK하이닉스의 HBM 투자 확대"
+
+
+def test_enhance_message_with_llm_preserves_fallback_on_api_error(monkeypatch) -> None:
+    articles = [make_article()]
+
+    class FakeOpenAI:
+        def __init__(self, **kwargs):
+            pass
+
+        @property
+        def chat(self):
+            raise RuntimeError("network unavailable")
+
+    monkeypatch.setattr(message_enhancer_module, "OpenAI", FakeOpenAI)
+
+    enhanced_articles, daily_trends = enhance_message_with_llm(
+        articles,
+        api_key="api-key",
+        model="nvidia-model",
+    )
+
+    assert enhanced_articles == articles
+    assert daily_trends == []
+
+
+def test_enhance_message_with_llm_strict_api_error_is_sanitized(monkeypatch) -> None:
+    class FakeCompletions:
+        def create(self, model, messages):
+            raise RuntimeError(
+                "Authorization: Bearer secret-api-key api_key=secret-api-key failed"
+            )
+
+    class FakeChat:
+        completions = FakeCompletions()
+
+    class FakeOpenAI:
+        def __init__(self, **kwargs):
+            self.chat = FakeChat()
+
+    monkeypatch.setattr(message_enhancer_module, "OpenAI", FakeOpenAI)
+
+    try:
+        enhance_message_with_llm(
+            [make_article()],
+            api_key="secret-api-key",
+            model="nvidia-model",
+            raise_on_error=True,
+        )
+    except LLMEnhancementError as exc:
+        assert exc.stage == "api_request_failed"
+        assert "secret-api-key" not in exc.message
+        assert "Authorization: Bearer [REDACTED]" in exc.message
+    else:
+        raise AssertionError("Expected LLMEnhancementError")
+
+
+def test_parse_message_enhancement_response_strict_json_error_has_excerpt() -> None:
+    response_text = "```json {not valid json} ```"
+
+    try:
+        parse_message_enhancement_response(
+            response_text,
+            [make_article()],
+            raise_on_error=True,
+        )
+    except LLMEnhancementError as exc:
+        assert exc.stage == "parse_failed"
+        assert "not valid JSON" in exc.message
+        assert exc.response_excerpt == response_text
+    else:
+        raise AssertionError("Expected LLMEnhancementError")
+
+
+def test_parse_message_enhancement_response_strict_empty_articles_fails() -> None:
+    response_text = json.dumps({"articles": [], "daily_trends": []})
+
+    try:
+        parse_message_enhancement_response(
+            response_text,
+            [make_article()],
+            raise_on_error=True,
+        )
+    except LLMEnhancementError as exc:
+        assert exc.stage == "parse_failed"
+        assert "parseable article entries" in exc.message
+        assert exc.response_excerpt == response_text
+    else:
+        raise AssertionError("Expected LLMEnhancementError")

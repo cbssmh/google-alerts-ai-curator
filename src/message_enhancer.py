@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import replace
 
 from src.models import CuratedArticle
@@ -12,6 +13,8 @@ except ImportError:
 
 
 CONFIDENCE_LEVELS = {"high", "medium", "low"}
+DIAGNOSTIC_MESSAGE_LENGTH = 500
+RESPONSE_EXCERPT_LENGTH = 500
 FORBIDDEN_PREVIEW_TERMS = (
     "투자 조언",
     "매수",
@@ -21,6 +24,20 @@ FORBIDDEN_PREVIEW_TERMS = (
     "개발자",
     "해야 합니다",
 )
+
+
+class LLMEnhancementError(RuntimeError):
+    def __init__(
+        self,
+        stage: str,
+        message: str,
+        *,
+        response_excerpt: str = "",
+    ):
+        super().__init__(message)
+        self.stage = stage
+        self.message = message
+        self.response_excerpt = response_excerpt
 
 
 def build_message_enhancement_prompt(articles: list[CuratedArticle]) -> str:
@@ -109,8 +126,15 @@ def enhance_message_with_llm(
     model: str,
     base_url: str | None = None,
     timeout_seconds: float | None = None,
+    *,
+    raise_on_error: bool = False,
 ) -> tuple[list[CuratedArticle], list[str]]:
     if not articles or OpenAI is None:
+        if raise_on_error and OpenAI is None:
+            raise LLMEnhancementError(
+                "client_unavailable",
+                "OpenAI-compatible client is not installed.",
+            )
         return articles, []
 
     prompt = build_message_enhancement_prompt(articles)
@@ -128,14 +152,42 @@ def enhance_message_with_llm(
             messages=[{"role": "user", "content": prompt}],
         )
         response_text = response.choices[0].message.content
-    except Exception:
+    except Exception as exc:
+        if raise_on_error:
+            raise LLMEnhancementError(
+                "api_request_failed",
+                _sanitize_diagnostic_text(
+                    f"{type(exc).__name__}: {exc}",
+                    secrets=(api_key,),
+                ),
+            ) from exc
         return articles, []
 
-    enhanced_articles, daily_trends = parse_message_enhancement_response(
-        response_text,
-        articles,
-    )
+    try:
+        enhanced_articles, daily_trends = parse_message_enhancement_response(
+            response_text,
+            articles,
+            raise_on_error=raise_on_error,
+        )
+    except LLMEnhancementError as exc:
+        if raise_on_error:
+            raise LLMEnhancementError(
+                exc.stage,
+                _sanitize_diagnostic_text(exc.message, secrets=(api_key,)),
+                response_excerpt=_sanitize_diagnostic_text(
+                    exc.response_excerpt,
+                    secrets=(api_key,),
+                ),
+            ) from exc
+        return articles, []
+
     if not enhanced_articles:
+        if raise_on_error:
+            raise LLMEnhancementError(
+                "parse_failed",
+                "LLM response did not produce any enhanced articles.",
+                response_excerpt=_response_excerpt(response_text),
+            )
         return articles, []
 
     return enhanced_articles, daily_trends
@@ -144,20 +196,45 @@ def enhance_message_with_llm(
 def parse_message_enhancement_response(
     response_text: str,
     articles: list[CuratedArticle],
+    *,
+    raise_on_error: bool = False,
 ) -> tuple[list[CuratedArticle], list[str]]:
     if not response_text:
+        if raise_on_error:
+            raise LLMEnhancementError(
+                "parse_failed",
+                "LLM response was empty.",
+            )
         return [], []
 
     try:
         data = json.loads(response_text)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
+        if raise_on_error:
+            raise LLMEnhancementError(
+                "parse_failed",
+                f"LLM response was not valid JSON: {exc.msg}.",
+                response_excerpt=_response_excerpt(response_text),
+            ) from exc
         return [], []
 
     if not isinstance(data, dict):
+        if raise_on_error:
+            raise LLMEnhancementError(
+                "parse_failed",
+                "LLM response JSON root was not an object.",
+                response_excerpt=_response_excerpt(response_text),
+            )
         return [], []
 
     raw_articles = data.get("articles")
     if not isinstance(raw_articles, list):
+        if raise_on_error:
+            raise LLMEnhancementError(
+                "parse_failed",
+                "LLM response did not contain an articles list.",
+                response_excerpt=_response_excerpt(response_text),
+            )
         return [], []
 
     enhanced_by_index: dict[int, CuratedArticle] = {}
@@ -197,6 +274,13 @@ def parse_message_enhancement_response(
                     original,
                 ),
             )
+        )
+
+    if raise_on_error and not enhanced_by_index:
+        raise LLMEnhancementError(
+            "parse_failed",
+            "LLM response did not contain any parseable article entries.",
+            response_excerpt=_response_excerpt(response_text),
         )
 
     enhanced_articles = [
@@ -299,3 +383,30 @@ def _clean_sentence(value, max_length: int) -> str:
         return ""
 
     return cleaned
+
+
+def _response_excerpt(response_text: str) -> str:
+    return _sanitize_diagnostic_text(response_text)[:RESPONSE_EXCERPT_LENGTH]
+
+
+def _sanitize_diagnostic_text(
+    value: str,
+    *,
+    secrets: tuple[str, ...] = (),
+) -> str:
+    text = " ".join(str(value or "").split())
+    for secret in secrets:
+        if secret:
+            text = text.replace(secret, "[REDACTED]")
+
+    text = re.sub(
+        r"(?i)(authorization\s*[:=]\s*bearer\s+)[^\s,;]+",
+        r"\1[REDACTED]",
+        text,
+    )
+    text = re.sub(
+        r"(?i)(api[-_]?key\s*[:=]\s*)[^\s,;]+",
+        r"\1[REDACTED]",
+        text,
+    )
+    return text[:DIAGNOSTIC_MESSAGE_LENGTH]

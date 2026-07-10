@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.config import get_llm_provider_config
 from src.message_builder import build_telegram_message
-from src.message_enhancer import enhance_message_with_llm
+from src.message_enhancer import LLMEnhancementError, enhance_message_with_llm
 from src.models import Article, CuratedArticle
 from src.rule_based_selector import select_high_signal_articles
 from src.telegram_sender import send_telegram_message
@@ -88,6 +88,9 @@ def run_smoke_test(
         "preview_omitted_articles": 0,
         "daily_trends_count": 0,
         "telegram_send_success": False,
+        "llm_error_stage": "",
+        "llm_error_message": "",
+        "llm_response_excerpt": "",
         "elapsed_seconds": 0.0,
     }
 
@@ -105,13 +108,22 @@ def run_smoke_test(
                 "Rule-based selector did not select all smoke test fixtures."
             )
 
-        enhanced_articles, daily_trends = enhance_message_with_llm(
-            curated_articles,
-            llm_config.api_key,
-            model=llm_config.model,
-            base_url=llm_config.base_url,
-            timeout_seconds=llm_config.timeout_seconds,
-        )
+        try:
+            enhanced_articles, daily_trends = enhance_message_with_llm(
+                curated_articles,
+                llm_config.api_key,
+                model=llm_config.model,
+                base_url=llm_config.base_url,
+                timeout_seconds=llm_config.timeout_seconds,
+                raise_on_error=True,
+            )
+        except LLMEnhancementError as exc:
+            result["llm_error_stage"] = exc.stage
+            result["llm_error_message"] = exc.message
+            result["llm_response_excerpt"] = exc.response_excerpt
+            raise SmokeTestError(
+                f"LLM enhancement failed at {exc.stage}: {exc.message}"
+            ) from exc
         if len(enhanced_articles) != len(curated_articles):
             raise SmokeTestError(
                 "LLM enhancement changed article count; semantic dedup is disabled."
@@ -122,6 +134,10 @@ def run_smoke_test(
         result["daily_trends_count"] = len(daily_trends)
         _set_preview_counts(result, enhanced_articles)
         if not llm_success:
+            result["llm_error_stage"] = "no_usable_enhancement"
+            result["llm_error_message"] = (
+                "No user-visible enhancement fields survived validation."
+            )
             raise SmokeTestError(
                 "LLM enhancement failed or returned no usable enhancement."
             )
@@ -207,6 +223,12 @@ def _print_result(result: dict[str, object]) -> None:
     print(f"preview_omitted_articles: {result['preview_omitted_articles']}")
     print(f"daily_trends_count: {result['daily_trends_count']}")
     print(f"telegram_send_success: {str(result['telegram_send_success']).lower()}")
+    if result.get("llm_error_stage"):
+        print(f"llm_error_stage: {result['llm_error_stage']}")
+    if result.get("llm_error_message"):
+        print(f"llm_error_message: {result['llm_error_message']}")
+    if result.get("llm_response_excerpt"):
+        print(f"llm_response_excerpt: {result['llm_response_excerpt']}")
     print(f"elapsed_seconds: {result['elapsed_seconds']}")
 
 
