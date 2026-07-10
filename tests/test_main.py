@@ -178,6 +178,7 @@ def test_missing_openai_api_key_uses_rule_based_selector(monkeypatch) -> None:
         model,
         base_url=None,
         timeout_seconds=None,
+        provider=None,
     ):
         nonlocal enhancement_called
         enhancement_called = True
@@ -248,11 +249,13 @@ def test_nvidia_provider_uses_nim_configuration(monkeypatch) -> None:
         model,
         base_url=None,
         timeout_seconds=None,
+        provider=None,
     ):
         captured["api_key"] = api_key
         captured["model"] = model
         captured["base_url"] = base_url
         captured["timeout_seconds"] = timeout_seconds
+        captured["provider"] = provider
         return [curated_article], ["AI 인프라 투자 확대"]
 
     monkeypatch.setattr(main_module, "enhance_message_with_llm", fake_enhance_message_with_llm)
@@ -283,6 +286,7 @@ def test_nvidia_provider_uses_nim_configuration(monkeypatch) -> None:
         "model": "nvidia-model",
         "base_url": "https://integrate.api.nvidia.com/v1",
         "timeout_seconds": 60.0,
+        "provider": "nvidia",
     }
     assert captured_message["articles"] == [curated_article]
     assert captured_message["daily_trends"] == ["AI 인프라 투자 확대"]
@@ -314,11 +318,13 @@ def test_openai_provider_uses_message_enhancement(monkeypatch) -> None:
         model,
         base_url=None,
         timeout_seconds=None,
+        provider=None,
     ):
         captured["api_key"] = api_key
         captured["model"] = model
         captured["base_url"] = base_url
         captured["timeout_seconds"] = timeout_seconds
+        captured["provider"] = provider
         return articles, []
 
     monkeypatch.setattr(main_module, "enhance_message_with_llm", fake_enhance_message_with_llm)
@@ -336,4 +342,5 @@ def test_openai_provider_uses_message_enhancement(monkeypatch) -> None:
         "model": "gpt-test",
         "base_url": None,
         "timeout_seconds": None,
+        "provider": "openai",
     }

@@ -128,6 +128,7 @@ def run_smoke_test(
                 model=llm_config.model,
                 base_url=llm_config.base_url,
                 timeout_seconds=llm_config.timeout_seconds,
+                provider=llm_config.provider,
                 raise_on_error=True,
             )
         except LLMEnhancementError as exc:

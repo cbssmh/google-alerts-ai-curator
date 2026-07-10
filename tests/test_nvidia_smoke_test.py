@@ -103,6 +103,7 @@ def test_smoke_test_reuses_enhancer_builder_and_sender_without_dedup(
         model,
         base_url=None,
         timeout_seconds=None,
+        provider=None,
         raise_on_error=False,
     ):
         calls["enhancer"] = True
@@ -110,6 +111,7 @@ def test_smoke_test_reuses_enhancer_builder_and_sender_without_dedup(
         assert model == env["NVIDIA_MODEL"]
         assert base_url == "https://integrate.api.nvidia.com/v1"
         assert timeout_seconds == 60.0
+        assert provider == "nvidia"
         assert raise_on_error is True
         return enhanced_articles_from(articles), ["AI 인프라와 기업 AI 도입"]
 
@@ -202,6 +204,7 @@ def test_llm_failure_fails_workflow_before_telegram(monkeypatch, capsys) -> None
         model,
         base_url=None,
         timeout_seconds=None,
+        provider=None,
         raise_on_error=False,
     ):
         return articles, []
@@ -239,6 +242,7 @@ def test_telegram_failure_fails_workflow(monkeypatch, capsys) -> None:
         model,
         base_url=None,
         timeout_seconds=None,
+        provider=None,
         raise_on_error=False,
     ):
         return enhanced_articles_from(articles), []
@@ -273,6 +277,7 @@ def test_confidence_and_evidence_only_do_not_count_as_llm_success(
         model,
         base_url=None,
         timeout_seconds=None,
+        provider=None,
         raise_on_error=False,
     ):
         return [
@@ -323,6 +328,7 @@ def test_strict_llm_error_is_logged_without_secrets(monkeypatch, capsys) -> None
         model,
         base_url=None,
         timeout_seconds=None,
+        provider=None,
         raise_on_error=False,
     ):
         assert raise_on_error is True
@@ -360,6 +366,7 @@ def test_strict_parse_error_excerpt_is_logged_with_limit(monkeypatch, capsys) ->
         model,
         base_url=None,
         timeout_seconds=None,
+        provider=None,
         raise_on_error=False,
     ):
         raise LLMEnhancementError(
@@ -407,6 +414,7 @@ def test_strict_response_metadata_is_logged(monkeypatch, capsys) -> None:
         model,
         base_url=None,
         timeout_seconds=None,
+        provider=None,
         raise_on_error=False,
     ):
         raise LLMEnhancementError(

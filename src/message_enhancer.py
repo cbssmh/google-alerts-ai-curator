@@ -17,6 +17,9 @@ CONFIDENCE_LEVELS = {"high", "medium", "low"}
 DIAGNOSTIC_MESSAGE_LENGTH = 500
 RESPONSE_EXCERPT_LENGTH = 500
 SAFE_RESPONSE_KEYS = ("id", "object", "created", "model", "choices", "usage")
+MINIMAX_M3_MODEL = "minimaxai/minimax-m3"
+DEFAULT_NVIDIA_COMPLETION_MAX_TOKENS = 2048
+DEFAULT_NVIDIA_COMPLETION_TEMPERATURE = 0.2
 FORBIDDEN_PREVIEW_TERMS = (
     "투자 조언",
     "매수",
@@ -132,6 +135,7 @@ def enhance_message_with_llm(
     model: str,
     base_url: str | None = None,
     timeout_seconds: float | None = None,
+    provider: str | None = None,
     *,
     raise_on_error: bool = False,
 ) -> tuple[list[CuratedArticle], list[str]]:
@@ -156,6 +160,7 @@ def enhance_message_with_llm(
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
+            **_build_completion_kwargs(model, provider),
         )
     except Exception as exc:
         if raise_on_error:
@@ -397,6 +402,33 @@ def _clean_sentence(value, max_length: int) -> str:
         return ""
 
     return cleaned
+
+
+def _build_completion_kwargs(
+    model: str,
+    provider: str | None = None,
+) -> dict[str, object]:
+    normalized_provider = str(provider or "").strip().lower()
+    normalized_model = str(model or "").strip()
+    if normalized_provider == "openai":
+        return {}
+
+    if normalized_provider != "nvidia" and normalized_model != MINIMAX_M3_MODEL:
+        return {}
+
+    kwargs: dict[str, object] = {
+        "max_tokens": DEFAULT_NVIDIA_COMPLETION_MAX_TOKENS,
+        "temperature": DEFAULT_NVIDIA_COMPLETION_TEMPERATURE,
+        "stream": False,
+    }
+    if normalized_model == MINIMAX_M3_MODEL:
+        kwargs["extra_body"] = {
+            "chat_template_kwargs": {
+                "thinking_mode": "disabled",
+            },
+        }
+
+    return kwargs
 
 
 def _extract_response_text(response) -> tuple[str, dict[str, object]]:

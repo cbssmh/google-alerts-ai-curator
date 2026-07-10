@@ -90,6 +90,48 @@ def fake_openai_returning(monkeypatch, response=None, error=None):
     monkeypatch.setattr(message_enhancer_module, "OpenAI", FakeOpenAI)
 
 
+def successful_response() -> FakeResponseObject:
+    return FakeResponseObject(
+        choices=[
+            FakeChoiceObject(
+                message=FakeMessageObject(
+                    content=json.dumps(
+                        {
+                            "articles": [
+                                {
+                                    "index": 0,
+                                    "korean_title": "삼성과 SK하이닉스의 HBM 투자 확대",
+                                    "preview": "",
+                                    "why_selected": "반도체 공급망 신호가 나타난 기사입니다.",
+                                    "confidence": "medium",
+                                    "evidence": ["Samsung", "HBM"],
+                                }
+                            ],
+                            "daily_trends": [],
+                        }
+                    )
+                )
+            )
+        ]
+    )
+
+
+def fake_openai_capturing_create_kwargs(monkeypatch, captured_create_kwargs):
+    class FakeCompletions:
+        def create(self, **kwargs):
+            captured_create_kwargs.update(kwargs)
+            return successful_response()
+
+    class FakeChat:
+        completions = FakeCompletions()
+
+    class FakeOpenAI:
+        def __init__(self, **kwargs):
+            self.chat = FakeChat()
+
+    monkeypatch.setattr(message_enhancer_module, "OpenAI", FakeOpenAI)
+
+
 def assert_strict_error(response, expected_stage: str, expected_type: str, monkeypatch):
     fake_openai_returning(monkeypatch, response=response)
 
@@ -396,6 +438,72 @@ def test_enhance_message_with_llm_passes_timeout_to_openai_client(monkeypatch) -
         "timeout": 60.0,
     }
     assert enhanced_articles[0].korean_title == "삼성과 SK하이닉스의 HBM 투자 확대"
+
+
+def test_minimax_m3_request_uses_nvidia_build_defaults(monkeypatch) -> None:
+    captured_create_kwargs = {}
+    fake_openai_capturing_create_kwargs(monkeypatch, captured_create_kwargs)
+
+    enhanced_articles, _daily_trends = enhance_message_with_llm(
+        [make_article()],
+        api_key="api-key",
+        model="minimaxai/minimax-m3",
+        provider="nvidia",
+        raise_on_error=True,
+    )
+
+    assert captured_create_kwargs["model"] == "minimaxai/minimax-m3"
+    assert captured_create_kwargs["max_tokens"] == 2048
+    assert captured_create_kwargs["temperature"] == 0.2
+    assert captured_create_kwargs["stream"] is False
+    assert captured_create_kwargs["extra_body"] == {
+        "chat_template_kwargs": {
+            "thinking_mode": "disabled",
+        }
+    }
+    assert "top_p" not in captured_create_kwargs
+    assert enhanced_articles[0].korean_title == "삼성과 SK하이닉스의 HBM 투자 확대"
+
+
+def test_openai_provider_does_not_receive_minimax_extra_body(monkeypatch) -> None:
+    captured_create_kwargs = {}
+    fake_openai_capturing_create_kwargs(monkeypatch, captured_create_kwargs)
+
+    enhance_message_with_llm(
+        [make_article()],
+        api_key="api-key",
+        model="gpt-test",
+        provider="openai",
+        raise_on_error=True,
+    )
+
+    assert captured_create_kwargs["model"] == "gpt-test"
+    assert "extra_body" not in captured_create_kwargs
+    assert "max_tokens" not in captured_create_kwargs
+    assert "temperature" not in captured_create_kwargs
+    assert "stream" not in captured_create_kwargs
+
+
+def test_other_nvidia_model_uses_base_kwargs_without_minimax_extra_body(
+    monkeypatch,
+) -> None:
+    captured_create_kwargs = {}
+    fake_openai_capturing_create_kwargs(monkeypatch, captured_create_kwargs)
+
+    enhance_message_with_llm(
+        [make_article()],
+        api_key="api-key",
+        model="meta/llama-test",
+        provider="nvidia",
+        raise_on_error=True,
+    )
+
+    assert captured_create_kwargs["model"] == "meta/llama-test"
+    assert captured_create_kwargs["max_tokens"] == 2048
+    assert captured_create_kwargs["temperature"] == 0.2
+    assert captured_create_kwargs["stream"] is False
+    assert "extra_body" not in captured_create_kwargs
+    assert "top_p" not in captured_create_kwargs
 
 
 def test_enhance_message_with_llm_preserves_fallback_on_api_error(monkeypatch) -> None:

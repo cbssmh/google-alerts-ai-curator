@@ -61,6 +61,7 @@ def main() -> None:
             model=llm_config.model,
             base_url=llm_config.base_url,
             timeout_seconds=llm_config.timeout_seconds,
+            provider=llm_config.provider,
         )
         show_summary = True
 
