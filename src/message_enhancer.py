@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Sequence
 from dataclasses import replace
 
 from src.models import CuratedArticle
@@ -15,6 +16,7 @@ except ImportError:
 CONFIDENCE_LEVELS = {"high", "medium", "low"}
 DIAGNOSTIC_MESSAGE_LENGTH = 500
 RESPONSE_EXCERPT_LENGTH = 500
+SAFE_RESPONSE_KEYS = ("id", "object", "created", "model", "choices", "usage")
 FORBIDDEN_PREVIEW_TERMS = (
     "투자 조언",
     "매수",
@@ -32,11 +34,15 @@ class LLMEnhancementError(RuntimeError):
         stage: str,
         message: str,
         *,
+        error_type: str = "LLMEnhancementError",
+        response_metadata: dict[str, object] | None = None,
         response_excerpt: str = "",
     ):
         super().__init__(message)
         self.stage = stage
+        self.error_type = error_type
         self.message = message
+        self.response_metadata = response_metadata or _empty_response_metadata()
         self.response_excerpt = response_excerpt
 
 
@@ -151,7 +157,6 @@ def enhance_message_with_llm(
             model=model,
             messages=[{"role": "user", "content": prompt}],
         )
-        response_text = response.choices[0].message.content
     except Exception as exc:
         if raise_on_error:
             raise LLMEnhancementError(
@@ -160,7 +165,15 @@ def enhance_message_with_llm(
                     f"{type(exc).__name__}: {exc}",
                     secrets=(api_key,),
                 ),
+                error_type=type(exc).__name__,
             ) from exc
+        return articles, []
+
+    try:
+        response_text, response_metadata = _extract_response_text(response)
+    except LLMEnhancementError as exc:
+        if raise_on_error:
+            raise _sanitize_llm_error(exc, secrets=(api_key,)) from exc
         return articles, []
 
     try:
@@ -171,21 +184,17 @@ def enhance_message_with_llm(
         )
     except LLMEnhancementError as exc:
         if raise_on_error:
-            raise LLMEnhancementError(
-                exc.stage,
-                _sanitize_diagnostic_text(exc.message, secrets=(api_key,)),
-                response_excerpt=_sanitize_diagnostic_text(
-                    exc.response_excerpt,
-                    secrets=(api_key,),
-                ),
-            ) from exc
+            exc.response_metadata = response_metadata
+            raise _sanitize_llm_error(exc, secrets=(api_key,)) from exc
         return articles, []
 
     if not enhanced_articles:
         if raise_on_error:
             raise LLMEnhancementError(
-                "parse_failed",
+                "response_parse_failed",
                 "LLM response did not produce any enhanced articles.",
+                error_type="NoEnhancedArticlesError",
+                response_metadata=response_metadata,
                 response_excerpt=_response_excerpt(response_text),
             )
         return articles, []
@@ -202,8 +211,9 @@ def parse_message_enhancement_response(
     if not response_text:
         if raise_on_error:
             raise LLMEnhancementError(
-                "parse_failed",
+                "response_parse_failed",
                 "LLM response was empty.",
+                error_type="EmptyResponseContentError",
             )
         return [], []
 
@@ -212,8 +222,9 @@ def parse_message_enhancement_response(
     except json.JSONDecodeError as exc:
         if raise_on_error:
             raise LLMEnhancementError(
-                "parse_failed",
+                "response_parse_failed",
                 f"LLM response was not valid JSON: {exc.msg}.",
+                error_type="InvalidJSONError",
                 response_excerpt=_response_excerpt(response_text),
             ) from exc
         return [], []
@@ -221,8 +232,9 @@ def parse_message_enhancement_response(
     if not isinstance(data, dict):
         if raise_on_error:
             raise LLMEnhancementError(
-                "parse_failed",
+                "response_parse_failed",
                 "LLM response JSON root was not an object.",
+                error_type="InvalidJSONRootError",
                 response_excerpt=_response_excerpt(response_text),
             )
         return [], []
@@ -231,8 +243,9 @@ def parse_message_enhancement_response(
     if not isinstance(raw_articles, list):
         if raise_on_error:
             raise LLMEnhancementError(
-                "parse_failed",
+                "response_parse_failed",
                 "LLM response did not contain an articles list.",
+                error_type="MissingArticlesListError",
                 response_excerpt=_response_excerpt(response_text),
             )
         return [], []
@@ -278,8 +291,9 @@ def parse_message_enhancement_response(
 
     if raise_on_error and not enhanced_by_index:
         raise LLMEnhancementError(
-            "parse_failed",
+            "response_parse_failed",
             "LLM response did not contain any parseable article entries.",
+            error_type="NoParseableArticlesError",
             response_excerpt=_response_excerpt(response_text),
         )
 
@@ -383,6 +397,290 @@ def _clean_sentence(value, max_length: int) -> str:
         return ""
 
     return cleaned
+
+
+def _extract_response_text(response) -> tuple[str, dict[str, object]]:
+    metadata = _response_metadata(response)
+    if response is None:
+        raise LLMEnhancementError(
+            "response_structure_invalid",
+            "NVIDIA response object was None.",
+            error_type="MissingResponseError",
+            response_metadata=metadata,
+        )
+
+    if not _has_field(response, "choices"):
+        raise LLMEnhancementError(
+            "response_structure_invalid",
+            "NVIDIA response did not expose a choices field.",
+            error_type="MissingChoicesError",
+            response_metadata=metadata,
+        )
+
+    choices = _get_field(response, "choices")
+    if choices is None:
+        raise LLMEnhancementError(
+            "response_structure_invalid",
+            "NVIDIA response choices field was None.",
+            error_type="NullChoicesError",
+            response_metadata=metadata,
+        )
+
+    if not _is_sequence(choices):
+        raise LLMEnhancementError(
+            "response_structure_invalid",
+            "NVIDIA response choices field was not a sequence.",
+            error_type="InvalidChoicesTypeError",
+            response_metadata=metadata,
+        )
+
+    if len(choices) == 0:
+        raise LLMEnhancementError(
+            "response_structure_invalid",
+            "NVIDIA response contained no choices.",
+            error_type="EmptyChoicesError",
+            response_metadata=metadata,
+        )
+
+    first_choice = next(iter(choices))
+    if first_choice is None:
+        raise LLMEnhancementError(
+            "response_structure_invalid",
+            "NVIDIA response first choice was None.",
+            error_type="NullChoiceError",
+            response_metadata=metadata,
+        )
+
+    if not _has_field(first_choice, "message"):
+        raise LLMEnhancementError(
+            "response_structure_invalid",
+            "NVIDIA response first choice did not expose a message field.",
+            error_type="MissingMessageError",
+            response_metadata=metadata,
+        )
+
+    message = _get_field(first_choice, "message")
+    if message is None:
+        raise LLMEnhancementError(
+            "response_structure_invalid",
+            "NVIDIA response first choice message was None.",
+            error_type="NullMessageError",
+            response_metadata=metadata,
+        )
+
+    content = _get_field(message, "content")
+    reasoning_content = _get_field(message, "reasoning_content")
+    reasoning_length = _string_length(reasoning_content)
+    finish_reason = metadata.get("first_choice_finish_reason", "")
+
+    if content is None:
+        raise LLMEnhancementError(
+            "response_content_missing",
+            _missing_content_message(
+                finish_reason,
+                reasoning_length,
+                content_was_empty=False,
+            ),
+            error_type=_content_missing_error_type(reasoning_length),
+            response_metadata=metadata,
+        )
+
+    if not isinstance(content, str):
+        raise LLMEnhancementError(
+            "response_content_missing",
+            "NVIDIA response message.content was not a string.",
+            error_type="InvalidContentTypeError",
+            response_metadata=metadata,
+        )
+
+    if not content.strip():
+        raise LLMEnhancementError(
+            "response_content_missing",
+            _missing_content_message(
+                finish_reason,
+                reasoning_length,
+                content_was_empty=True,
+            ),
+            error_type=_content_missing_error_type(reasoning_length),
+            response_metadata=metadata,
+        )
+
+    return content, metadata
+
+
+def _response_metadata(response) -> dict[str, object]:
+    metadata = _empty_response_metadata()
+    metadata["response_object_type"] = type(response).__name__
+    if response is None:
+        return metadata
+
+    response_id = _get_field(response, "id")
+    metadata["response_id_present"] = bool(response_id)
+    response_model = _get_field(response, "model")
+    metadata["response_model"] = _safe_string(response_model)
+    metadata["response_usage_present"] = _get_field(response, "usage") is not None
+    metadata["response_keys"] = _safe_response_keys(response)
+
+    choices = _get_field(response, "choices")
+    if _is_sequence(choices):
+        metadata["response_choices_count"] = len(choices)
+        if choices:
+            first_choice = next(iter(choices))
+            _add_first_choice_metadata(metadata, first_choice)
+    elif choices is None:
+        metadata["response_choices_count"] = 0
+
+    return metadata
+
+
+def _add_first_choice_metadata(
+    metadata: dict[str, object],
+    first_choice,
+) -> None:
+    finish_reason = _get_field(first_choice, "finish_reason")
+    if finish_reason is None and _has_field(first_choice, "finish_reason"):
+        metadata["first_choice_finish_reason"] = "null"
+    elif finish_reason is not None:
+        metadata["first_choice_finish_reason"] = _safe_string(finish_reason)
+    elif first_choice is not None:
+        metadata["first_choice_finish_reason"] = "unknown"
+
+    message = _get_field(first_choice, "message")
+    metadata["response_message_present"] = message is not None
+    if message is None:
+        return
+
+    content = _get_field(message, "content")
+    if content is None:
+        metadata["response_content_type"] = "NoneType"
+    else:
+        metadata["response_content_type"] = type(content).__name__
+        metadata["response_content_length"] = _string_length(content)
+
+    reasoning_content = _get_field(message, "reasoning_content")
+    reasoning_length = _string_length(reasoning_content)
+    metadata["response_has_reasoning_content"] = reasoning_length > 0
+    metadata["reasoning_content_length"] = reasoning_length
+
+
+def _empty_response_metadata() -> dict[str, object]:
+    return {
+        "response_object_type": "",
+        "response_id_present": False,
+        "response_model": "",
+        "response_choices_count": 0,
+        "response_usage_present": False,
+        "first_choice_finish_reason": "",
+        "response_message_present": False,
+        "response_content_type": "",
+        "response_content_length": 0,
+        "response_has_reasoning_content": False,
+        "reasoning_content_length": 0,
+        "response_keys": "",
+    }
+
+
+def _has_field(value, field_name: str) -> bool:
+    if isinstance(value, dict):
+        return field_name in value
+
+    return hasattr(value, field_name)
+
+
+def _get_field(value, field_name: str):
+    if isinstance(value, dict):
+        return value.get(field_name)
+
+    return getattr(value, field_name, None)
+
+
+def _is_sequence(value) -> bool:
+    return isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray))
+
+
+def _string_length(value) -> int:
+    if isinstance(value, str):
+        return len(value)
+
+    return 0
+
+
+def _safe_string(value) -> str:
+    if value is None:
+        return ""
+
+    return _sanitize_diagnostic_text(str(value))
+
+
+def _safe_response_keys(response) -> str:
+    data = _response_dict(response)
+    if isinstance(data, dict):
+        return ",".join(key for key in SAFE_RESPONSE_KEYS if key in data)
+
+    return ",".join(key for key in SAFE_RESPONSE_KEYS if _has_field(response, key))
+
+
+def _response_dict(response):
+    for method_name in ("model_dump", "to_dict", "dict"):
+        method = getattr(response, method_name, None)
+        if not callable(method):
+            continue
+
+        try:
+            data = method()
+        except Exception:
+            continue
+
+        if isinstance(data, dict):
+            return data
+
+    return None
+
+
+def _content_missing_error_type(reasoning_length: int) -> str:
+    if reasoning_length > 0:
+        return "ReasoningOnlyResponseError"
+
+    return "MissingContentError"
+
+
+def _missing_content_message(
+    finish_reason,
+    reasoning_length: int,
+    *,
+    content_was_empty: bool,
+) -> str:
+    content_state = "empty" if content_was_empty else "missing"
+    if reasoning_length > 0:
+        return (
+            f"NVIDIA response message.content was {content_state}, "
+            "but reasoning_content was present. reasoning_content is not used as JSON."
+        )
+
+    if finish_reason == "length":
+        return (
+            f"NVIDIA response message.content was {content_state} and "
+            "finish_reason was length; max_tokens or reasoning token consumption may be involved."
+        )
+
+    return f"NVIDIA response message.content was {content_state}."
+
+
+def _sanitize_llm_error(
+    exc: LLMEnhancementError,
+    *,
+    secrets: tuple[str, ...],
+) -> LLMEnhancementError:
+    return LLMEnhancementError(
+        exc.stage,
+        _sanitize_diagnostic_text(exc.message, secrets=secrets),
+        error_type=exc.error_type,
+        response_metadata=exc.response_metadata,
+        response_excerpt=_sanitize_diagnostic_text(
+            exc.response_excerpt,
+            secrets=secrets,
+        ),
+    )
 
 
 def _response_excerpt(response_text: str) -> str:

@@ -292,6 +292,7 @@ def test_confidence_and_evidence_only_do_not_count_as_llm_success(
     logged_text = capsys.readouterr().out
     assert "llm_enhancement_success: false" in logged_text
     assert "llm_error_stage: no_usable_enhancement" in logged_text
+    assert "llm_error_type: NoUsableEnhancementError" in logged_text
     assert "llm_error_message: No user-visible enhancement fields survived validation." in logged_text
 
 
@@ -328,6 +329,7 @@ def test_strict_llm_error_is_logged_without_secrets(monkeypatch, capsys) -> None
         raise LLMEnhancementError(
             "api_request_failed",
             "RuntimeError: Authorization: Bearer [REDACTED] failed",
+            error_type="RuntimeError",
         )
 
     monkeypatch.setattr(
@@ -341,6 +343,7 @@ def test_strict_llm_error_is_logged_without_secrets(monkeypatch, capsys) -> None
 
     logged_text = capsys.readouterr().out
     assert "llm_error_stage: api_request_failed" in logged_text
+    assert "llm_error_type: RuntimeError" in logged_text
     assert "llm_error_message: RuntimeError: Authorization: Bearer [REDACTED] failed" in logged_text
     assert env["NVIDIA_API_KEY"] not in logged_text
     assert env["TELEGRAM_BOT_TOKEN"] not in logged_text
@@ -360,8 +363,9 @@ def test_strict_parse_error_excerpt_is_logged_with_limit(monkeypatch, capsys) ->
         raise_on_error=False,
     ):
         raise LLMEnhancementError(
-            "parse_failed",
+            "response_parse_failed",
             "LLM response was not valid JSON.",
+            error_type="InvalidJSONError",
             response_excerpt=response_excerpt,
         )
 
@@ -371,9 +375,66 @@ def test_strict_parse_error_excerpt_is_logged_with_limit(monkeypatch, capsys) ->
         fake_enhance_message_with_llm,
     )
 
-    with pytest.raises(smoke_module.SmokeTestError, match="parse_failed"):
+    with pytest.raises(smoke_module.SmokeTestError, match="response_parse_failed"):
         smoke_module.run_smoke_test(env)
 
     logged_text = capsys.readouterr().out
-    assert "llm_error_stage: parse_failed" in logged_text
+    assert "llm_error_stage: response_parse_failed" in logged_text
+    assert "llm_error_type: InvalidJSONError" in logged_text
     assert f"llm_response_excerpt: {response_excerpt}" in logged_text
+
+
+def test_strict_response_metadata_is_logged(monkeypatch, capsys) -> None:
+    env = make_env()
+    metadata = {
+        "response_object_type": "ChatCompletion",
+        "response_id_present": True,
+        "response_model": "minimaxai/minimax-m3",
+        "response_choices_count": 0,
+        "response_usage_present": True,
+        "first_choice_finish_reason": "",
+        "response_message_present": False,
+        "response_content_type": "",
+        "response_content_length": 0,
+        "response_has_reasoning_content": False,
+        "reasoning_content_length": 0,
+        "response_keys": "id,object,created,model,choices,usage",
+    }
+
+    def fake_enhance_message_with_llm(
+        articles,
+        api_key,
+        model,
+        base_url=None,
+        timeout_seconds=None,
+        raise_on_error=False,
+    ):
+        raise LLMEnhancementError(
+            "response_structure_invalid",
+            "NVIDIA response contained no choices.",
+            error_type="EmptyChoicesError",
+            response_metadata=metadata,
+        )
+
+    monkeypatch.setattr(
+        smoke_module,
+        "enhance_message_with_llm",
+        fake_enhance_message_with_llm,
+    )
+
+    with pytest.raises(smoke_module.SmokeTestError, match="response_structure_invalid"):
+        smoke_module.run_smoke_test(env)
+
+    logged_text = capsys.readouterr().out
+    assert "llm_error_stage: response_structure_invalid" in logged_text
+    assert "llm_error_type: EmptyChoicesError" in logged_text
+    assert "response_object_type: ChatCompletion" in logged_text
+    assert "response_id_present: true" in logged_text
+    assert "response_model: minimaxai/minimax-m3" in logged_text
+    assert "response_choices_count: 0" in logged_text
+    assert "response_usage_present: true" in logged_text
+    assert "response_message_present: false" in logged_text
+    assert "response_content_length: 0" in logged_text
+    assert "response_has_reasoning_content: false" in logged_text
+    assert "reasoning_content_length: 0" in logged_text
+    assert "response_keys: id,object,created,model,choices,usage" in logged_text

@@ -10,6 +10,51 @@ from src.message_enhancer import (
 from src.models import CuratedArticle
 
 
+MISSING = object()
+
+
+class FakeResponseObject:
+    def __init__(
+        self,
+        *,
+        choices=MISSING,
+        response_id="resp-test",
+        model="minimaxai/minimax-m3",
+        usage=None,
+    ):
+        self.id = response_id
+        self.model = model
+        self.usage = usage
+        if choices is not MISSING:
+            self.choices = choices
+
+    def model_dump(self):
+        data = {
+            "id": self.id,
+            "object": "chat.completion",
+            "created": 1,
+            "model": self.model,
+            "usage": self.usage,
+        }
+        if hasattr(self, "choices"):
+            data["choices"] = self.choices
+        return data
+
+
+class FakeChoiceObject:
+    def __init__(self, *, message=MISSING, finish_reason="stop"):
+        self.finish_reason = finish_reason
+        if message is not MISSING:
+            self.message = message
+
+
+class FakeMessageObject:
+    def __init__(self, *, content=None, reasoning_content=None):
+        self.content = content
+        if reasoning_content is not MISSING:
+            self.reasoning_content = reasoning_content
+
+
 def make_article(
     title: str = "Samsung and SK Hynix expand HBM investment for AI chips",
     snippet: str = "Samsung and SK Hynix are increasing HBM investment as AI chip demand grows.",
@@ -26,6 +71,41 @@ def make_article(
         career_market_insight="",
         recommendation_reasons=["반도체 공급망", "인프라 투자"],
     )
+
+
+def fake_openai_returning(monkeypatch, response=None, error=None):
+    class FakeCompletions:
+        def create(self, model, messages):
+            if error is not None:
+                raise error
+            return response
+
+    class FakeChat:
+        completions = FakeCompletions()
+
+    class FakeOpenAI:
+        def __init__(self, **kwargs):
+            self.chat = FakeChat()
+
+    monkeypatch.setattr(message_enhancer_module, "OpenAI", FakeOpenAI)
+
+
+def assert_strict_error(response, expected_stage: str, expected_type: str, monkeypatch):
+    fake_openai_returning(monkeypatch, response=response)
+
+    try:
+        enhance_message_with_llm(
+            [make_article()],
+            api_key="api-key",
+            model="nvidia-model",
+            raise_on_error=True,
+        )
+    except LLMEnhancementError as exc:
+        assert exc.stage == expected_stage
+        assert exc.error_type == expected_type
+        return exc
+
+    raise AssertionError("Expected LLMEnhancementError")
 
 
 def test_prompt_contains_grounding_guardrails() -> None:
@@ -372,6 +452,230 @@ def test_enhance_message_with_llm_strict_api_error_is_sanitized(monkeypatch) -> 
         raise AssertionError("Expected LLMEnhancementError")
 
 
+def test_empty_choices_is_response_structure_invalid(monkeypatch) -> None:
+    response = FakeResponseObject(choices=[])
+
+    exc = assert_strict_error(
+        response,
+        "response_structure_invalid",
+        "EmptyChoicesError",
+        monkeypatch,
+    )
+
+    assert "no choices" in exc.message
+    assert exc.response_metadata["response_choices_count"] == 0
+    assert exc.response_metadata["response_object_type"] == "FakeResponseObject"
+    assert exc.response_metadata["response_model"] == "minimaxai/minimax-m3"
+    assert exc.response_metadata["response_usage_present"] is False
+    assert "choices" in exc.response_metadata["response_keys"]
+
+
+def test_none_choices_is_response_structure_invalid(monkeypatch) -> None:
+    response = FakeResponseObject(choices=None)
+
+    exc = assert_strict_error(
+        response,
+        "response_structure_invalid",
+        "NullChoicesError",
+        monkeypatch,
+    )
+
+    assert "choices field was None" in exc.message
+
+
+def test_missing_choices_attribute_is_response_structure_invalid(monkeypatch) -> None:
+    response = FakeResponseObject()
+
+    exc = assert_strict_error(
+        response,
+        "response_structure_invalid",
+        "MissingChoicesError",
+        monkeypatch,
+    )
+
+    assert "choices field" in exc.message
+
+
+def test_choice_without_message_is_response_structure_invalid(monkeypatch) -> None:
+    response = FakeResponseObject(choices=[FakeChoiceObject()])
+
+    exc = assert_strict_error(
+        response,
+        "response_structure_invalid",
+        "MissingMessageError",
+        monkeypatch,
+    )
+
+    assert "message field" in exc.message
+    assert exc.response_metadata["first_choice_finish_reason"] == "stop"
+    assert exc.response_metadata["response_message_present"] is False
+
+
+def test_message_content_none_is_response_content_missing(monkeypatch) -> None:
+    response = FakeResponseObject(
+        choices=[FakeChoiceObject(message=FakeMessageObject(content=None))]
+    )
+
+    exc = assert_strict_error(
+        response,
+        "response_content_missing",
+        "MissingContentError",
+        monkeypatch,
+    )
+
+    assert "content was missing" in exc.message
+    assert exc.response_metadata["response_message_present"] is True
+    assert exc.response_metadata["response_content_type"] == "NoneType"
+    assert exc.response_metadata["response_content_length"] == 0
+
+
+def test_message_content_empty_is_response_content_missing(monkeypatch) -> None:
+    response = FakeResponseObject(
+        choices=[FakeChoiceObject(message=FakeMessageObject(content=""))]
+    )
+
+    exc = assert_strict_error(
+        response,
+        "response_content_missing",
+        "MissingContentError",
+        monkeypatch,
+    )
+
+    assert "content was empty" in exc.message
+    assert exc.response_metadata["response_content_type"] == "str"
+    assert exc.response_metadata["response_content_length"] == 0
+
+
+def test_reasoning_content_only_is_not_used_as_json(monkeypatch) -> None:
+    response = FakeResponseObject(
+        choices=[
+            FakeChoiceObject(
+                message=FakeMessageObject(
+                    content="",
+                    reasoning_content="thinking but no final json",
+                )
+            )
+        ]
+    )
+
+    exc = assert_strict_error(
+        response,
+        "response_content_missing",
+        "ReasoningOnlyResponseError",
+        monkeypatch,
+    )
+
+    assert "reasoning_content is not used as JSON" in exc.message
+    assert exc.response_metadata["response_has_reasoning_content"] is True
+    assert exc.response_metadata["reasoning_content_length"] == len(
+        "thinking but no final json"
+    )
+
+
+def test_finish_reason_length_is_recorded_when_content_missing(monkeypatch) -> None:
+    response = FakeResponseObject(
+        choices=[
+            FakeChoiceObject(
+                message=FakeMessageObject(content=""),
+                finish_reason="length",
+            )
+        ]
+    )
+
+    exc = assert_strict_error(
+        response,
+        "response_content_missing",
+        "MissingContentError",
+        monkeypatch,
+    )
+
+    assert "finish_reason was length" in exc.message
+    assert exc.response_metadata["first_choice_finish_reason"] == "length"
+
+
+def test_normal_response_content_is_passed_to_parser(monkeypatch) -> None:
+    response_text = json.dumps(
+        {
+            "articles": [
+                {
+                    "index": 0,
+                    "korean_title": "삼성과 SK하이닉스의 HBM 투자 확대",
+                    "preview": "",
+                    "why_selected": "반도체 공급망 신호가 나타난 기사입니다.",
+                    "confidence": "medium",
+                    "evidence": ["Samsung", "HBM"],
+                }
+            ],
+            "daily_trends": [],
+        }
+    )
+    response = FakeResponseObject(
+        choices=[
+            FakeChoiceObject(
+                message=FakeMessageObject(content=response_text),
+                finish_reason="stop",
+            )
+        ],
+        usage={"total_tokens": 1},
+    )
+    fake_openai_returning(monkeypatch, response=response)
+
+    enhanced_articles, daily_trends = enhance_message_with_llm(
+        [make_article()],
+        api_key="api-key",
+        model="nvidia-model",
+        raise_on_error=True,
+    )
+
+    assert enhanced_articles[0].korean_title == "삼성과 SK하이닉스의 HBM 투자 확대"
+    assert daily_trends == []
+
+
+def test_api_call_exception_is_api_request_failed(monkeypatch) -> None:
+    fake_openai_returning(monkeypatch, error=RuntimeError("network unavailable"))
+
+    try:
+        enhance_message_with_llm(
+            [make_article()],
+            api_key="api-key",
+            model="nvidia-model",
+            raise_on_error=True,
+        )
+    except LLMEnhancementError as exc:
+        assert exc.stage == "api_request_failed"
+        assert exc.error_type == "RuntimeError"
+    else:
+        raise AssertionError("Expected LLMEnhancementError")
+
+
+def test_response_extraction_error_is_not_api_request_failed(monkeypatch) -> None:
+    response = FakeResponseObject(choices=[])
+
+    exc = assert_strict_error(
+        response,
+        "response_structure_invalid",
+        "EmptyChoicesError",
+        monkeypatch,
+    )
+
+    assert exc.stage != "api_request_failed"
+
+
+def test_non_strict_response_structure_error_preserves_fallback(monkeypatch) -> None:
+    articles = [make_article()]
+    response = FakeResponseObject(choices=[])
+    fake_openai_returning(monkeypatch, response=response)
+
+    enhanced_articles, daily_trends = enhance_message_with_llm(
+        articles,
+        api_key="api-key",
+        model="nvidia-model",
+    )
+
+    assert enhanced_articles == articles
+    assert daily_trends == []
+
+
 def test_parse_message_enhancement_response_strict_json_error_has_excerpt() -> None:
     response_text = "```json {not valid json} ```"
 
@@ -382,7 +686,8 @@ def test_parse_message_enhancement_response_strict_json_error_has_excerpt() -> N
             raise_on_error=True,
         )
     except LLMEnhancementError as exc:
-        assert exc.stage == "parse_failed"
+        assert exc.stage == "response_parse_failed"
+        assert exc.error_type == "InvalidJSONError"
         assert "not valid JSON" in exc.message
         assert exc.response_excerpt == response_text
     else:
@@ -399,7 +704,8 @@ def test_parse_message_enhancement_response_strict_empty_articles_fails() -> Non
             raise_on_error=True,
         )
     except LLMEnhancementError as exc:
-        assert exc.stage == "parse_failed"
+        assert exc.stage == "response_parse_failed"
+        assert exc.error_type == "NoParseableArticlesError"
         assert "parseable article entries" in exc.message
         assert exc.response_excerpt == response_text
     else:

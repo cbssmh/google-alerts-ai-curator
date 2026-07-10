@@ -89,8 +89,21 @@ def run_smoke_test(
         "daily_trends_count": 0,
         "telegram_send_success": False,
         "llm_error_stage": "",
+        "llm_error_type": "",
         "llm_error_message": "",
         "llm_response_excerpt": "",
+        "response_object_type": "",
+        "response_id_present": False,
+        "response_model": "",
+        "response_choices_count": 0,
+        "response_usage_present": False,
+        "first_choice_finish_reason": "",
+        "response_message_present": False,
+        "response_content_type": "",
+        "response_content_length": 0,
+        "response_has_reasoning_content": False,
+        "reasoning_content_length": 0,
+        "response_keys": "",
         "elapsed_seconds": 0.0,
     }
 
@@ -118,9 +131,7 @@ def run_smoke_test(
                 raise_on_error=True,
             )
         except LLMEnhancementError as exc:
-            result["llm_error_stage"] = exc.stage
-            result["llm_error_message"] = exc.message
-            result["llm_response_excerpt"] = exc.response_excerpt
+            _set_llm_error_result(result, exc)
             raise SmokeTestError(
                 f"LLM enhancement failed at {exc.stage}: {exc.message}"
             ) from exc
@@ -135,6 +146,7 @@ def run_smoke_test(
         _set_preview_counts(result, enhanced_articles)
         if not llm_success:
             result["llm_error_stage"] = "no_usable_enhancement"
+            result["llm_error_type"] = "NoUsableEnhancementError"
             result["llm_error_message"] = (
                 "No user-visible enhancement fields survived validation."
             )
@@ -214,6 +226,19 @@ def _set_preview_counts(
     result["preview_omitted_articles"] = len(articles) - generated_count
 
 
+def _set_llm_error_result(
+    result: dict[str, object],
+    exc: LLMEnhancementError,
+) -> None:
+    result["llm_error_stage"] = exc.stage
+    result["llm_error_type"] = exc.error_type
+    result["llm_error_message"] = exc.message
+    result["llm_response_excerpt"] = exc.response_excerpt
+    for key, value in exc.response_metadata.items():
+        if key in result:
+            result[key] = value
+
+
 def _print_result(result: dict[str, object]) -> None:
     print(f"provider: {result['provider']}")
     print(f"model: {result['model']}")
@@ -225,10 +250,27 @@ def _print_result(result: dict[str, object]) -> None:
     print(f"telegram_send_success: {str(result['telegram_send_success']).lower()}")
     if result.get("llm_error_stage"):
         print(f"llm_error_stage: {result['llm_error_stage']}")
+    if result.get("llm_error_type"):
+        print(f"llm_error_type: {result['llm_error_type']}")
     if result.get("llm_error_message"):
         print(f"llm_error_message: {result['llm_error_message']}")
     if result.get("llm_response_excerpt"):
         print(f"llm_response_excerpt: {result['llm_response_excerpt']}")
+    print(f"response_object_type: {result['response_object_type']}")
+    print(f"response_id_present: {str(result['response_id_present']).lower()}")
+    print(f"response_model: {result['response_model']}")
+    print(f"response_choices_count: {result['response_choices_count']}")
+    print(f"response_usage_present: {str(result['response_usage_present']).lower()}")
+    print(f"first_choice_finish_reason: {result['first_choice_finish_reason']}")
+    print(f"response_message_present: {str(result['response_message_present']).lower()}")
+    print(f"response_content_type: {result['response_content_type']}")
+    print(f"response_content_length: {result['response_content_length']}")
+    print(
+        "response_has_reasoning_content: "
+        f"{str(result['response_has_reasoning_content']).lower()}"
+    )
+    print(f"reasoning_content_length: {result['reasoning_content_length']}")
+    print(f"response_keys: {result['response_keys']}")
     print(f"elapsed_seconds: {result['elapsed_seconds']}")
 
 
