@@ -8,6 +8,10 @@ def make_article(
     relevance_score: int = 9,
     recommendation_reasons=None,
     url: str = "https://example.com/article",
+    korean_title: str = "",
+    preview: str = "",
+    enhanced_why_selected: str = "",
+    confidence: str = "",
 ) -> CuratedArticle:
     return CuratedArticle(
         title=title,
@@ -25,6 +29,10 @@ def make_article(
         recommendation_reasons=recommendation_reasons
         if recommendation_reasons is not None
         else ["신뢰도 높은 출처", "가격 / 비용 변화", "기업 도입"],
+        korean_title=korean_title,
+        preview=preview,
+        enhanced_why_selected=enhanced_why_selected,
+        confidence=confidence,
     )
 
 
@@ -109,15 +117,14 @@ def test_why_selected_renders_when_reasons_exist() -> None:
         ]
     )
 
-    assert "Why selected: 신뢰도 높은 출처 · 가격 / 비용 변화 · 기업 도입" in message
+    assert "✓ Why selected\n신뢰도 높은 출처 · 가격 / 비용 변화 · 기업 도입" in message
     assert "Key Signals" not in message
-    assert "•" not in message
 
 
 def test_why_selected_hidden_when_reasons_are_empty() -> None:
     message = build_telegram_message([make_article(recommendation_reasons=[])])
 
-    assert "Why selected:" not in message
+    assert "✓ Why selected" not in message
     assert "Key Signals" not in message
 
 
@@ -131,7 +138,7 @@ def test_quality_pass_reason_is_never_rendered() -> None:
     )
 
     assert "저품질 패턴 없음" not in message
-    assert "Why selected: 신뢰도 높은 출처" in message
+    assert "✓ Why selected\n신뢰도 높은 출처" in message
 
 
 def test_recommendation_reasons_are_capped_to_3() -> None:
@@ -148,7 +155,7 @@ def test_recommendation_reasons_are_capped_to_3() -> None:
         ]
     )
 
-    assert "Why selected: 신뢰도 높은 출처 · 가격 / 비용 변화 · 기업 도입" in message
+    assert "✓ Why selected\n신뢰도 높은 출처 · 가격 / 비용 변화 · 기업 도입" in message
     assert "보안 사고" not in message
 
 
@@ -167,7 +174,7 @@ def test_internal_labels_are_not_rendered() -> None:
 
     assert "AI Interface Shift" not in message
     assert "Semiconductor Race" not in message
-    assert "Why selected: 반도체 공급망" in message
+    assert "✓ Why selected\n반도체 공급망" in message
 
 
 def test_old_labels_are_absent() -> None:
@@ -187,24 +194,17 @@ def test_old_labels_are_absent() -> None:
     assert "AI Interface Shift" not in message
 
 
-def test_separator_is_not_rendered() -> None:
+def test_separator_is_rendered_between_cards() -> None:
     message = build_telegram_message([make_article("First"), make_article("Second")])
 
-    assert "────────────" not in message
+    assert "━━━━━━━━━━━━━━" in message
 
 
-def test_two_blank_lines_separate_article_cards() -> None:
+def test_separator_separates_article_cards() -> None:
     message = build_telegram_message([make_article("First"), make_article("Second")])
 
     first_link_end = '</a>'
-    assert f"{first_link_end}\n\n\n✅ RECOMMENDED" in message
-
-
-def test_no_blank_lines_inside_article_cards() -> None:
-    message = build_telegram_message([make_article()])
-    card = message.split("\n\n", 1)[1]
-
-    assert "\n\n" not in card
+    assert f"{first_link_end}\n\n━━━━━━━━━━━━━━\n\n✅ RECOMMENDED" in message
 
 
 def test_why_selected_multiple_reasons_use_middle_dot_separator() -> None:
@@ -216,29 +216,77 @@ def test_why_selected_multiple_reasons_use_middle_dot_separator() -> None:
         ]
     )
 
-    assert "Why selected: 반도체 공급망 · 투자 / IPO / M&amp;A" in message
+    assert "✓ Why selected\n반도체 공급망 · 투자 / IPO / M&amp;A" in message
 
 
 def test_link_uses_html_anchor_and_hides_visible_raw_url() -> None:
     message = build_telegram_message([make_article(url="https://example.com/article")])
 
-    assert '🔗 <a href="https://example.com/article">Read on Example</a>' in message
+    assert '🔗 <a href="https://example.com/article">Read →</a>' in message
     assert "\nhttps://example.com/article" not in message
 
 
-def test_link_falls_back_to_read_when_source_is_empty() -> None:
+def test_link_label_is_stable_when_source_is_empty() -> None:
     message = build_telegram_message(
         [make_article(source=" ", url="https://example.com/article")]
     )
 
-    assert '🔗 <a href="https://example.com/article">Read</a>' in message
+    assert '🔗 <a href="https://example.com/article">Read →</a>' in message
     assert "Read on" not in message
 
 
-def test_link_source_label_is_html_escaped() -> None:
-    message = build_telegram_message([make_article(source="AT&T <Labs>")])
+def test_enhanced_korean_title_and_preview_render() -> None:
+    message = build_telegram_message(
+        [
+            make_article(
+                korean_title="AI 반도체 투자 확대",
+                preview="AI 반도체 투자 확대를 다룬 기사입니다.",
+                confidence="high",
+            )
+        ]
+    )
 
-    assert "Read on AT&amp;T &lt;Labs&gt;" in message
+    assert "🇰🇷 AI 반도체 투자 확대" in message
+    assert "AI 반도체 투자 확대를 다룬 기사입니다." in message
+
+
+def test_low_confidence_preview_is_hidden() -> None:
+    message = build_telegram_message(
+        [
+            make_article(
+                preview="AI 반도체 투자 확대를 다룬 기사입니다.",
+                confidence="low",
+            )
+        ]
+    )
+
+    assert "AI 반도체 투자 확대를 다룬 기사입니다." not in message
+
+
+def test_enhanced_why_selected_takes_priority() -> None:
+    message = build_telegram_message(
+        [
+            make_article(
+                enhanced_why_selected="반도체 공급망 변화가 핵심인 기사입니다.",
+                recommendation_reasons=["신뢰도 높은 출처"],
+            )
+        ]
+    )
+
+    assert "반도체 공급망 변화가 핵심인 기사입니다." in message
+    assert "신뢰도 높은 출처" not in message
+
+
+def test_daily_trends_render_above_cards() -> None:
+    message = build_telegram_message(
+        [make_article()],
+        daily_trends=["AI 인프라 투자 확대", "모델 가격 경쟁 심화"],
+    )
+
+    assert message.startswith("📰 오늘의 AI 흐름")
+    assert "• AI 인프라 투자 확대" in message
+    assert "• 모델 가격 경쟁 심화" in message
+    assert "Daily High-Signal Tech Alerts" not in message
 
 
 def test_link_url_is_html_attribute_escaped() -> None:

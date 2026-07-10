@@ -114,6 +114,45 @@ def test_curate_articles_valid_mocked_response_returns_curated_articles(
     assert articles[0].title == "Article 0"
 
 
+def test_curate_articles_uses_openai_compatible_base_url(monkeypatch) -> None:
+    captured = {}
+
+    class FakeCompletions:
+        def create(self, model, messages):
+            captured["model"] = model
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(content=make_response())
+                    )
+                ]
+            )
+
+    class FakeOpenAI:
+        def __init__(self, api_key, base_url=None):
+            captured["api_key"] = api_key
+            captured["base_url"] = base_url
+            self.chat = SimpleNamespace(
+                completions=FakeCompletions(),
+            )
+
+    monkeypatch.setattr(curator, "OpenAI", FakeOpenAI)
+
+    articles = curate_articles(
+        [make_article()],
+        api_key="nvapi-key",
+        model="nvidia-model",
+        base_url="https://integrate.api.nvidia.com/v1",
+    )
+
+    assert len(articles) == 1
+    assert captured == {
+        "api_key": "nvapi-key",
+        "base_url": "https://integrate.api.nvidia.com/v1",
+        "model": "nvidia-model",
+    }
+
+
 def test_curate_articles_api_exception_returns_empty_list(monkeypatch) -> None:
     class FakeCompletions:
         def create(self, model, messages):

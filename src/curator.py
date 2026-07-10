@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 
 from src.models import Article, CuratedArticle
@@ -117,6 +119,7 @@ def curate_articles(
     articles: list[Article],
     api_key: str,
     model: str = "gpt-4.1-mini",
+    base_url: str | None = None,
 ) -> list[CuratedArticle]:
     if not articles or OpenAI is None:
         return []
@@ -124,7 +127,11 @@ def curate_articles(
     prompt = build_curator_prompt(articles)
 
     try:
-        client = OpenAI(api_key=api_key)
+        client_kwargs = {"api_key": api_key}
+        if base_url:
+            client_kwargs["base_url"] = base_url
+
+        client = OpenAI(**client_kwargs)
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],

@@ -4,7 +4,7 @@ Google Alerts AI Curator turns Google Alerts emails into a compact Telegram dige
 
 The project is not an AI summarizer. Its goal is to reduce decision time, not reading time: Google Alerts discovers candidate articles, the deterministic selector ranks the most useful ones, and Telegram shows a short digest that helps you decide what to open.
 
-The default path is free-first and no-LLM. If `OPENAI_API_KEY` is configured, the app can still use the optional OpenAI curator path, but the baseline release works without it.
+The default path is free-first and no-LLM. If an LLM provider is configured, the app can optionally enhance the final message, but rule-based selection still decides which articles are shown.
 
 ## Telegram Digest
 
@@ -15,14 +15,18 @@ Daily High-Signal Tech Alerts
 
 🏆 ESSENTIAL
 South Korea's $518 billion AI chip push shows crypto is still losing the capital race
-Why selected: 반도체 공급망
-🔗 Read on Reuters
+
+✓ Why selected
+반도체 공급망
+🔗 Read →
 
 
 ✅ RECOMMENDED
 Baidu shares jump 7% as AI chip arm Kunlunxin said to target $50 billion Hong Kong IPO
-Why selected: 반도체 공급망 · 투자 / IPO / M&A
-🔗 Read on CNBC
+
+✓ Why selected
+반도체 공급망 · 투자 / IPO / M&A
+🔗 Read →
 ```
 
 The message does not show snippets, numeric selector scores, internal signal names, or article summaries.
@@ -39,7 +43,7 @@ The message does not show snippets, numeric selector scores, internal signal nam
 8. Mark URLs as processed only after a successful Telegram send.
 9. Save deduplication state.
 
-If `OPENAI_API_KEY` is present, the app uses the optional OpenAI curator path instead of the no-LLM selector.
+If an LLM provider is configured, the app still runs the no-LLM selector first, then asks the LLM to enhance only the final selected cards with grounded Korean titles, previews, reasons, and optional daily trends.
 
 ## Local Setup
 
@@ -63,7 +67,18 @@ export TELEGRAM_CHAT_ID="your-telegram-chat-id"
 Optional OpenAI path:
 
 ```bash
+export LLM_PROVIDER="openai"
 export OPENAI_API_KEY="your-openai-api-key"
+export OPENAI_MODEL="gpt-4.1-mini"
+```
+
+Optional NVIDIA Build NIM path:
+
+```bash
+export LLM_PROVIDER="nvidia"
+export NVIDIA_API_KEY="your-nvidia-api-key"
+export NVIDIA_BASE_URL="https://integrate.api.nvidia.com/v1"
+export NVIDIA_MODEL="minimaxai/minimax-m3"
 ```
 
 Run the app:
@@ -83,7 +98,12 @@ Configure these repository secrets in GitHub Actions:
 
 Optional:
 
+- `LLM_PROVIDER`
 - `OPENAI_API_KEY`
+- `OPENAI_MODEL`
+- `NVIDIA_API_KEY`
+- `NVIDIA_BASE_URL`
+- `NVIDIA_MODEL`
 
 ## Gmail IMAP Requirements
 

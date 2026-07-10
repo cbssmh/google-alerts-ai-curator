@@ -20,3 +20,8 @@ class CuratedArticle:
     korean_summary: str
     career_market_insight: str
     recommendation_reasons: list[str] = field(default_factory=list)
+    korean_title: str = ""
+    preview: str = ""
+    enhanced_why_selected: str = ""
+    confidence: str = ""
+    evidence: list[str] = field(default_factory=list)

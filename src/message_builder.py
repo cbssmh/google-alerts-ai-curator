@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from html import escape
 
 from src.models import CuratedArticle
@@ -19,6 +21,7 @@ def build_telegram_message(
     articles: list[CuratedArticle],
     header: str = "Daily High-Signal Tech Alerts",
     show_summary: bool = True,
+    daily_trends: list[str] | None = None,
 ) -> str:
     if not articles:
         return ""
@@ -27,7 +30,15 @@ def build_telegram_message(
         _build_article_section(index, article)
         for index, article in enumerate(articles, start=1)
     ]
-    return _escape_text(header) + "\n\n" + "\n\n\n".join(article_sections)
+    sections = []
+    trend_section = _build_daily_trends_section(daily_trends or [])
+    if trend_section:
+        sections.append(trend_section)
+    else:
+        sections.append(_escape_text(header))
+
+    sections.extend(article_sections)
+    return "\n\n━━━━━━━━━━━━━━\n\n".join(sections)
 
 
 def _build_article_section(index: int, article: CuratedArticle) -> str:
@@ -36,14 +47,43 @@ def _build_article_section(index: int, article: CuratedArticle) -> str:
         _escape_text(_clean_text(article.title)),
     ]
 
-    reasons = _reader_facing_reasons(article.recommendation_reasons)
-    if reasons:
-        signals = " · ".join(_escape_text(reason) for reason in reasons)
-        lines.append(f"Why selected: {signals}")
+    korean_title = _clean_text(article.korean_title)
+    if korean_title:
+        lines.extend(["", f"🇰🇷 {_escape_text(korean_title)}"])
+
+    preview = _clean_text(article.preview)
+    if preview and article.confidence.lower() != "low":
+        lines.extend(["", _escape_text(preview)])
+
+    why_selected = _clean_text(article.enhanced_why_selected)
+    if not why_selected:
+        reasons = _reader_facing_reasons(article.recommendation_reasons)
+        why_selected = " · ".join(reasons)
+
+    if why_selected:
+        lines.extend(["", "✓ Why selected", _escape_text(why_selected)])
 
     lines.append(
-        f'🔗 <a href="{_escape_attr(article.url)}">{_read_link_label(article.source)}</a>'
+        f'🔗 <a href="{_escape_attr(article.url)}">Read →</a>'
     )
+    return "\n".join(lines)
+
+
+def _build_daily_trends_section(daily_trends: list[str]) -> str:
+    cleaned_trends = []
+    for trend in daily_trends:
+        cleaned = _clean_text(trend)
+        if cleaned and cleaned not in cleaned_trends:
+            cleaned_trends.append(cleaned)
+
+        if len(cleaned_trends) == 3:
+            break
+
+    if not cleaned_trends:
+        return ""
+
+    lines = ["📰 오늘의 AI 흐름", ""]
+    lines.extend(f"• {_escape_text(trend)}" for trend in cleaned_trends)
     return "\n".join(lines)
 
 
@@ -71,14 +111,6 @@ def _reader_facing_reasons(reasons: list[str], limit: int = 3) -> list[str]:
             break
 
     return reader_facing
-
-
-def _read_link_label(source: str) -> str:
-    cleaned_source = _clean_text(source)
-    if not cleaned_source:
-        return "Read"
-
-    return f"Read on {_escape_text(cleaned_source)}"
 
 
 def _clean_text(text: str) -> str:

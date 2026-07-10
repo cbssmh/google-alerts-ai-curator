@@ -1,0 +1,31 @@
+name: NVIDIA Message Smoke Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+      NVIDIA_MODEL: ${{ vars.NVIDIA_MODEL }}
+      NVIDIA_TIMEOUT_SECONDS: ${{ vars.NVIDIA_TIMEOUT_SECONDS }}
+      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run NVIDIA message smoke test
+        run: python scripts/smoke_test_nvidia_enhancer.py
