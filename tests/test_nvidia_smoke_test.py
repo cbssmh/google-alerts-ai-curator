@@ -9,6 +9,7 @@ from scripts import smoke_test_nvidia_enhancer as smoke_module
 from src import message_enhancer as message_enhancer_module
 from src.dedup_store import DedupStore
 from src.message_enhancer import LLMEnhancementError
+from src.models import DailyLandscape, TrendTheme
 from src.rule_based_selector import select_high_signal_articles
 
 
@@ -54,6 +55,21 @@ def enhanced_articles_from(articles):
             evidence=[],
         ),
     ]
+
+
+def smoke_landscape() -> DailyLandscape:
+    return DailyLandscape(
+        headline="AI 인프라와 기업 AI 관련 테스트 소식이 함께 나타났습니다.",
+        themes=[
+            TrendTheme(
+                label="AI 인프라 투자",
+                article_indices=[0, 1],
+                summary="HBM과 GPU 관련 테스트 신호가 함께 나타났습니다.",
+            )
+        ],
+        keywords=["HBM", "GPU"],
+        entities=[],
+    )
 
 
 def test_missing_nvidia_api_key_fails() -> None:
@@ -127,18 +143,19 @@ def test_smoke_test_reuses_enhancer_builder_and_sender_without_dedup(
         assert timeout_seconds == 60.0
         assert provider == "nvidia"
         assert raise_on_error is True
-        return enhanced_articles_from(articles), ["AI 인프라와 기업 AI 도입"]
+        return enhanced_articles_from(articles), smoke_landscape()
 
     def fake_build_telegram_message(
         articles,
         header="Daily High-Signal Tech Alerts",
         show_summary=True,
         daily_trends=None,
+        landscape=None,
     ):
         calls["builder"] = True
         assert len(articles) == 3
         assert show_summary is True
-        assert daily_trends == ["AI 인프라와 기업 AI 도입"]
+        assert landscape == smoke_landscape()
         return "telegram body"
 
     def fake_send_telegram_message(bot_token, chat_id, message):
@@ -183,7 +200,10 @@ def test_smoke_test_reuses_enhancer_builder_and_sender_without_dedup(
     assert result["llm_enhancement_success"] is True
     assert result["preview_generated_articles"] == 2
     assert result["preview_omitted_articles"] == 1
-    assert result["daily_trends_count"] == 1
+    assert result["landscape_headline_present"] is True
+    assert result["theme_count"] == 1
+    assert result["keyword_count"] == 2
+    assert result["entity_count"] == 0
     assert result["telegram_send_success"] is True
     assert "provider: nvidia" in logged_text
     assert f"model: {model}" in logged_text
@@ -258,7 +278,18 @@ def test_mistral_smoke_path_uses_common_nvidia_kwargs_without_minimax_extra_body
                                 "evidence": [],
                             },
                         ],
-                        "daily_trends": ["기업 AI 인프라 신호"],
+                        "landscape": {
+                            "headline": "AI 인프라 테스트 소식이 함께 나타났습니다.",
+                            "themes": [
+                                {
+                                    "label": "AI 인프라 투자",
+                                    "article_indices": [0, 1],
+                                    "summary": "HBM과 GPU 신호가 함께 나타났습니다.",
+                                }
+                            ],
+                            "keywords": ["HBM", "GPU"],
+                            "entities": [],
+                        },
                     }
                 )
             )
@@ -277,6 +308,10 @@ def test_mistral_smoke_path_uses_common_nvidia_kwargs_without_minimax_extra_body
 
     assert result["llm_enhancement_success"] is True
     assert result["telegram_send_success"] is True
+    assert result["landscape_headline_present"] is True
+    assert result["theme_count"] == 1
+    assert result["keyword_count"] == 2
+    assert result["entity_count"] == 0
     assert captured_create_kwargs["model"] == MISTRAL_MODEL
     assert captured_create_kwargs["max_tokens"] == 2048
     assert captured_create_kwargs["temperature"] == 0.2
@@ -299,7 +334,7 @@ def test_llm_failure_fails_workflow_before_telegram(monkeypatch, capsys) -> None
         provider=None,
         raise_on_error=False,
     ):
-        return articles, []
+        return articles, DailyLandscape()
 
     def fake_send_telegram_message(*args):
         nonlocal telegram_called
@@ -337,7 +372,7 @@ def test_telegram_failure_fails_workflow(monkeypatch, capsys) -> None:
         provider=None,
         raise_on_error=False,
     ):
-        return enhanced_articles_from(articles), []
+        return enhanced_articles_from(articles), DailyLandscape()
 
     monkeypatch.setattr(
         smoke_module,
@@ -375,7 +410,7 @@ def test_confidence_and_evidence_only_do_not_count_as_llm_success(
         return [
             replace(article, confidence="low", evidence=["HBM"])
             for article in articles
-        ], []
+        ], DailyLandscape()
 
     monkeypatch.setattr(
         smoke_module,

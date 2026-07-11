@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from html import escape
 
-from src.models import CuratedArticle
+from src.models import CuratedArticle, DailyLandscape
 
 INTERNAL_REASON_LABELS = {
     "저품질 패턴 없음",
@@ -22,6 +22,7 @@ def build_telegram_message(
     header: str = "Daily High-Signal Tech Alerts",
     show_summary: bool = True,
     daily_trends: list[str] | None = None,
+    landscape: DailyLandscape | None = None,
 ) -> str:
     if not articles:
         return ""
@@ -31,11 +32,15 @@ def build_telegram_message(
         for index, article in enumerate(articles, start=1)
     ]
     sections = []
-    trend_section = _build_daily_trends_section(daily_trends or [])
-    if trend_section:
-        sections.append(trend_section)
+    landscape_section = _build_landscape_section(landscape)
+    if landscape_section:
+        sections.append(landscape_section)
     else:
-        sections.append(_escape_text(header))
+        trend_section = _build_daily_trends_section(daily_trends or [])
+        if trend_section:
+            sections.append(trend_section)
+        else:
+            sections.append(_escape_text(header))
 
     sections.extend(article_sections)
     return "\n\n━━━━━━━━━━━━━━\n\n".join(sections)
@@ -85,6 +90,49 @@ def _build_daily_trends_section(daily_trends: list[str]) -> str:
     lines = ["📰 오늘의 AI 흐름", ""]
     lines.extend(f"• {_escape_text(trend)}" for trend in cleaned_trends)
     return "\n".join(lines)
+
+
+def _build_landscape_section(landscape: DailyLandscape | None) -> str:
+    if landscape is None or landscape.is_empty():
+        return ""
+
+    lines = ["📰 오늘의 AI Landscape"]
+    headline = _clean_text(landscape.headline)
+    if headline:
+        lines.extend(["", _escape_text(headline)])
+
+    theme_labels = []
+    for theme in landscape.themes:
+        label = _clean_text(theme.label)
+        if label and label not in theme_labels:
+            theme_labels.append(label)
+
+    if theme_labels:
+        lines.extend(["", "주요 흐름"])
+        lines.extend(f"• {_escape_text(label)}" for label in theme_labels)
+
+    keywords = _clean_unique_terms(landscape.keywords, limit=6)
+    if keywords:
+        lines.extend(["", "주요 키워드", _escape_text(" · ".join(keywords))])
+
+    entities = _clean_unique_terms(landscape.entities, limit=5)
+    if entities:
+        lines.extend(["", "주요 기업·기관", _escape_text(" · ".join(entities))])
+
+    return "\n".join(lines)
+
+
+def _clean_unique_terms(terms: list[str], limit: int) -> list[str]:
+    cleaned_terms = []
+    for term in terms:
+        cleaned = _clean_text(term)
+        if cleaned and cleaned not in cleaned_terms:
+            cleaned_terms.append(cleaned)
+
+        if len(cleaned_terms) == limit:
+            break
+
+    return cleaned_terms
 
 
 def _recommendation_tier(score: int) -> str:

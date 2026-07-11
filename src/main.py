@@ -8,6 +8,7 @@ from src.gmail_fetcher import fetch_recent_google_alerts_html
 from src.google_alerts_parser import parse_google_alerts_email
 from src.message_enhancer import enhance_message_with_llm
 from src.message_builder import build_telegram_message
+from src.models import DailyLandscape
 from src.rule_based_selector import select_high_signal_articles
 from src.telegram_sender import send_telegram_message
 
@@ -51,11 +52,11 @@ def main() -> None:
     articles_to_mark_processed = curated_articles
     message_header = "Daily High-Signal Tech Alerts"
     show_summary = False
-    daily_trends = []
+    landscape = DailyLandscape()
 
     llm_config = get_llm_provider_config()
     if llm_config and curated_articles:
-        curated_articles, daily_trends = enhance_message_with_llm(
+        curated_articles, landscape = enhance_message_with_llm(
             curated_articles,
             llm_config.api_key,
             model=llm_config.model,
@@ -73,7 +74,7 @@ def main() -> None:
         curated_articles,
         header=message_header,
         show_summary=show_summary,
-        daily_trends=daily_trends,
+        landscape=landscape,
     )
     if not message:
         print("No Telegram message generated.")

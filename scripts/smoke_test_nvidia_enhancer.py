@@ -14,7 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.config import get_llm_provider_config
 from src.message_builder import build_telegram_message
 from src.message_enhancer import LLMEnhancementError, enhance_message_with_llm
-from src.models import Article, CuratedArticle
+from src.models import Article, CuratedArticle, DailyLandscape
 from src.rule_based_selector import select_high_signal_articles
 from src.telegram_sender import send_telegram_message
 
@@ -85,7 +85,10 @@ def run_smoke_test(
         "llm_enhancement_success": False,
         "preview_generated_articles": 0,
         "preview_omitted_articles": 0,
-        "daily_trends_count": 0,
+        "landscape_headline_present": False,
+        "theme_count": 0,
+        "keyword_count": 0,
+        "entity_count": 0,
         "telegram_send_success": False,
         "llm_error_stage": "",
         "llm_error_type": "",
@@ -121,7 +124,7 @@ def run_smoke_test(
             )
 
         try:
-            enhanced_articles, daily_trends = enhance_message_with_llm(
+            enhanced_articles, landscape = enhance_message_with_llm(
                 curated_articles,
                 llm_config.api_key,
                 model=llm_config.model,
@@ -142,7 +145,7 @@ def run_smoke_test(
 
         llm_success = _has_usable_enhancement(enhanced_articles)
         result["llm_enhancement_success"] = llm_success
-        result["daily_trends_count"] = len(daily_trends)
+        _set_landscape_counts(result, landscape)
         _set_preview_counts(result, enhanced_articles)
         if not llm_success:
             result["llm_error_stage"] = "no_usable_enhancement"
@@ -158,7 +161,7 @@ def run_smoke_test(
             enhanced_articles,
             header="NVIDIA Message Smoke Test",
             show_summary=True,
-            daily_trends=daily_trends,
+            landscape=landscape,
         )
         if not message_body:
             raise SmokeTestError("Telegram message builder returned an empty message.")
@@ -220,6 +223,16 @@ def _set_preview_counts(
     result["preview_omitted_articles"] = len(articles) - generated_count
 
 
+def _set_landscape_counts(
+    result: dict[str, object],
+    landscape: DailyLandscape,
+) -> None:
+    result["landscape_headline_present"] = bool(landscape.headline.strip())
+    result["theme_count"] = len(landscape.themes)
+    result["keyword_count"] = len(landscape.keywords)
+    result["entity_count"] = len(landscape.entities)
+
+
 def _set_llm_error_result(
     result: dict[str, object],
     exc: LLMEnhancementError,
@@ -240,7 +253,13 @@ def _print_result(result: dict[str, object]) -> None:
     print(f"llm_enhancement_success: {str(result['llm_enhancement_success']).lower()}")
     print(f"preview_generated_articles: {result['preview_generated_articles']}")
     print(f"preview_omitted_articles: {result['preview_omitted_articles']}")
-    print(f"daily_trends_count: {result['daily_trends_count']}")
+    print(
+        "landscape_headline_present: "
+        f"{str(result['landscape_headline_present']).lower()}"
+    )
+    print(f"theme_count: {result['theme_count']}")
+    print(f"keyword_count: {result['keyword_count']}")
+    print(f"entity_count: {result['entity_count']}")
     print(f"telegram_send_success: {str(result['telegram_send_success']).lower()}")
     if result.get("llm_error_stage"):
         print(f"llm_error_stage: {result['llm_error_stage']}")

@@ -5,7 +5,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import replace
 
-from src.models import CuratedArticle
+from src.models import CuratedArticle, DailyLandscape, TrendTheme
 
 try:
     from openai import OpenAI
@@ -29,6 +29,37 @@ FORBIDDEN_PREVIEW_TERMS = (
     "개발자",
     "해야 합니다",
 )
+FORBIDDEN_LANDSCAPE_TERMS = (
+    "시장 판도가 바뀐다",
+    "경쟁이 심화될 전망",
+    "심화될 전망",
+    "전환점",
+    "주목해야",
+    "큰 영향을 미칠",
+    "투자 기회",
+    "반드시 배워야",
+)
+BROAD_THEME_LABELS = {
+    "ai",
+    "기술",
+    "산업",
+    "technology",
+    "tech",
+    "industry",
+}
+BROAD_LANDSCAPE_TERMS = {
+    "ai",
+    "artificial intelligence",
+    "technology",
+    "tech",
+    "company",
+    "companies",
+    "industry",
+    "market",
+    "markets",
+    "business",
+    "news",
+}
 
 
 class LLMEnhancementError(RuntimeError):
@@ -65,20 +96,23 @@ def build_message_enhancement_prompt(articles: list[CuratedArticle]) -> str:
             )
         )
 
-    return f"""You enhance a Telegram decision card for Google Alerts articles.
+    return f"""You create a grounded Daily Landscape and Telegram decision card for Google Alerts articles.
 
 Core philosophy:
 - Rule-based selection already decided which articles are worth showing.
 - You do not select new articles.
-- You may only make the message easier to understand.
+- You may only synthesize observable patterns and make the message easier to understand.
 
 Grounding rules:
-- Do not assume you read the full article body.
+- You only see Google Alerts metadata, not full article bodies.
 - Use only title, source, snippet, and rule_based_reasons.
+- Do not claim to have read the article.
 - If there is not enough evidence, return an empty string for preview.
+- If evidence is insufficient, return an empty string or empty array.
 - Do not force a preview.
 - Do not infer company intent.
-- Do not invent numbers, facts, causes, or outcomes.
+- Do not infer hidden company intent.
+- Do not invent facts, numbers, causes, outcomes, companies, keywords, or entities.
 - Do not write market forecasts.
 - Do not write investment advice.
 - Do not write developer career advice or career insight.
@@ -86,9 +120,26 @@ Grounding rules:
 - Do not write a full summary.
 - Evidence must contain only words that appear in the original title or snippet.
 
+Daily Landscape rules:
+- The landscape describes observable repeated patterns across the selected articles.
+- landscape.headline must be supported by at least two articles; otherwise return an empty string.
+- A daily theme must be supported by multiple articles.
+- Every theme article index must exist in the input.
+- Use 2 to 4 themes only when repeated patterns exist.
+- Each theme label must be a short specific noun phrase, not a broad label like "AI", "technology", or "industry".
+- Theme summaries must stay within the provided title and snippet evidence.
+- Keywords and entities must appear in the source title or snippet.
+- Return at most 6 keywords.
+- Return at most 5 entities.
+- Prefer repeated keywords and entities across articles.
+- Good wording: "관련 소식이 함께 나타났습니다", "여러 기사에서 반복됐습니다", "투자와 공급망 관련 보도가 포함됐습니다".
+- Forbidden wording: "시장이 재편되고 있습니다", "경쟁이 심화될 전망입니다", "업계 판도를 바꿀 것입니다", "새로운 전환점입니다", "큰 영향을 미칠 것입니다", "투자 기회입니다", "개발자는 반드시 배워야 합니다".
+
 Output rules:
 - Output strict JSON only.
-- Write korean_title, preview, why_selected, and daily_trends in Korean.
+- Do not wrap JSON in Markdown fences.
+- Write korean_title, preview, why_selected, landscape.headline, theme label, and theme summary in Korean.
+- Keep keywords and entities as source-grounded terms.
 - Keep the original article title unchanged by referring to articles by index.
 - korean_title must be short, natural, and grounded in the title/snippet.
 - korean_title should be 20 to 45 Korean characters when possible.
@@ -98,11 +149,6 @@ Output rules:
 - why_selected should explain the rule-based signal in one reader-friendly Korean sentence.
 - confidence must be one of: high, medium, low.
 - If confidence is low, preview must be an empty string.
-- daily_trends should contain only common trends across multiple final articles.
-- If there is only one final article, daily_trends must be an empty array.
-- Include only trends directly supported by at least two final articles.
-- Return at most two daily_trends items.
-- If there is no clear common trend, daily_trends must be an empty array.
 
 Semantic deduplication is disabled for this release.
 - Do not remove, merge, hide, or reorder articles.
@@ -111,6 +157,18 @@ Semantic deduplication is disabled for this release.
 
 JSON schema:
 {{
+  "landscape": {{
+    "headline": "",
+    "themes": [
+      {{
+        "label": "",
+        "article_indices": [0, 1],
+        "summary": ""
+      }}
+    ],
+    "keywords": [],
+    "entities": []
+  }},
   "articles": [
     {{
       "index": 0,
@@ -120,8 +178,7 @@ JSON schema:
       "confidence": "high",
       "evidence": []
     }}
-  ],
-  "daily_trends": []
+  ]
 }}
 
 Articles:
@@ -138,14 +195,14 @@ def enhance_message_with_llm(
     provider: str | None = None,
     *,
     raise_on_error: bool = False,
-) -> tuple[list[CuratedArticle], list[str]]:
+) -> tuple[list[CuratedArticle], DailyLandscape]:
     if not articles or OpenAI is None:
         if raise_on_error and OpenAI is None:
             raise LLMEnhancementError(
                 "client_unavailable",
                 "OpenAI-compatible client is not installed.",
             )
-        return articles, []
+        return articles, DailyLandscape()
 
     prompt = build_message_enhancement_prompt(articles)
 
@@ -172,17 +229,17 @@ def enhance_message_with_llm(
                 ),
                 error_type=type(exc).__name__,
             ) from exc
-        return articles, []
+        return articles, DailyLandscape()
 
     try:
         response_text, response_metadata = _extract_response_text(response)
     except LLMEnhancementError as exc:
         if raise_on_error:
             raise _sanitize_llm_error(exc, secrets=(api_key,)) from exc
-        return articles, []
+        return articles, DailyLandscape()
 
     try:
-        enhanced_articles, daily_trends = parse_message_enhancement_response(
+        enhanced_articles, landscape = parse_message_enhancement_response(
             response_text,
             articles,
             raise_on_error=raise_on_error,
@@ -191,7 +248,7 @@ def enhance_message_with_llm(
         if raise_on_error:
             exc.response_metadata = response_metadata
             raise _sanitize_llm_error(exc, secrets=(api_key,)) from exc
-        return articles, []
+        return articles, DailyLandscape()
 
     if not enhanced_articles:
         if raise_on_error:
@@ -202,9 +259,9 @@ def enhance_message_with_llm(
                 response_metadata=response_metadata,
                 response_excerpt=_response_excerpt(response_text),
             )
-        return articles, []
+        return articles, DailyLandscape()
 
-    return enhanced_articles, daily_trends
+    return enhanced_articles, landscape
 
 
 def parse_message_enhancement_response(
@@ -212,7 +269,7 @@ def parse_message_enhancement_response(
     articles: list[CuratedArticle],
     *,
     raise_on_error: bool = False,
-) -> tuple[list[CuratedArticle], list[str]]:
+) -> tuple[list[CuratedArticle], DailyLandscape]:
     if not response_text:
         if raise_on_error:
             raise LLMEnhancementError(
@@ -220,7 +277,7 @@ def parse_message_enhancement_response(
                 "LLM response was empty.",
                 error_type="EmptyResponseContentError",
             )
-        return [], []
+        return [], DailyLandscape()
 
     json_text = _strip_markdown_code_fence(response_text)
     try:
@@ -233,7 +290,7 @@ def parse_message_enhancement_response(
                 error_type="InvalidJSONError",
                 response_excerpt=_response_excerpt(response_text),
             ) from exc
-        return [], []
+        return [], DailyLandscape()
 
     if not isinstance(data, dict):
         if raise_on_error:
@@ -243,7 +300,7 @@ def parse_message_enhancement_response(
                 error_type="InvalidJSONRootError",
                 response_excerpt=_response_excerpt(response_text),
             )
-        return [], []
+        return [], DailyLandscape()
 
     raw_articles = data.get("articles")
     if not isinstance(raw_articles, list):
@@ -254,7 +311,7 @@ def parse_message_enhancement_response(
                 error_type="MissingArticlesListError",
                 response_excerpt=_response_excerpt(response_text),
             )
-        return [], []
+        return [], DailyLandscape()
 
     enhanced_by_index: dict[int, CuratedArticle] = {}
     seen_indices: set[int] = set()
@@ -308,10 +365,159 @@ def parse_message_enhancement_response(
         for index, article in enumerate(articles)
     ]
 
-    return enhanced_articles, _clean_daily_trends(
-        data.get("daily_trends", []),
-        article_count=len(enhanced_articles),
+    return enhanced_articles, _clean_landscape(data.get("landscape", {}), articles)
+
+
+def _clean_landscape(value, articles: list[CuratedArticle]) -> DailyLandscape:
+    if not isinstance(value, dict):
+        return DailyLandscape()
+
+    themes = _clean_themes(value.get("themes", []), article_count=len(articles))
+    return DailyLandscape(
+        headline=_clean_landscape_headline(
+            value.get("headline", ""),
+            article_count=len(articles),
+        ),
+        themes=themes,
+        keywords=_clean_grounded_terms(
+            value.get("keywords", []),
+            articles,
+            limit=6,
+            excluded_terms=BROAD_LANDSCAPE_TERMS,
+        ),
+        entities=_clean_grounded_terms(
+            value.get("entities", []),
+            articles,
+            limit=5,
+            excluded_terms=BROAD_LANDSCAPE_TERMS,
+        ),
     )
+
+
+def _clean_landscape_headline(value, article_count: int) -> str:
+    if article_count < 2:
+        return ""
+
+    headline = _clean_sentence(value, max_length=60)
+    if not headline:
+        return ""
+
+    if any(term in headline for term in FORBIDDEN_LANDSCAPE_TERMS):
+        return ""
+
+    return headline
+
+
+def _clean_themes(value, article_count: int) -> list[TrendTheme]:
+    if not isinstance(value, list):
+        return []
+
+    themes = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+
+        label = _clean_sentence(item.get("label", ""), max_length=30)
+        if not label or label.casefold() in BROAD_THEME_LABELS:
+            continue
+
+        article_indices = _clean_theme_article_indices(
+            item.get("article_indices", []),
+            article_count=article_count,
+        )
+        if len(article_indices) < 2:
+            continue
+
+        summary = _clean_sentence(item.get("summary", ""), max_length=100)
+        themes.append(
+            TrendTheme(
+                label=label,
+                article_indices=article_indices,
+                summary=summary,
+            )
+        )
+
+        if len(themes) == 4:
+            break
+
+    return themes
+
+
+def _clean_theme_article_indices(value, article_count: int) -> list[int]:
+    if not isinstance(value, list):
+        return []
+
+    indices = []
+    for index in value:
+        if type(index) is not int:
+            continue
+
+        if index < 0 or index >= article_count or index in indices:
+            continue
+
+        indices.append(index)
+
+    return indices
+
+
+def _clean_grounded_terms(
+    value,
+    articles: list[CuratedArticle],
+    *,
+    limit: int,
+    excluded_terms: set[str],
+) -> list[str]:
+    if not isinstance(value, list):
+        return []
+
+    source_text = _source_title_snippet_text(articles)
+    terms = []
+    seen_keys = set()
+    for item in value:
+        term = _clean_sentence(item, max_length=40)
+        if not term:
+            continue
+
+        normalized_key = _landscape_term_key(term)
+        if normalized_key in excluded_terms or normalized_key in seen_keys:
+            continue
+
+        if not _source_contains_term(source_text, term):
+            continue
+
+        seen_keys.add(normalized_key)
+        terms.append(term)
+
+        if len(terms) == limit:
+            break
+
+    return terms
+
+
+def _source_title_snippet_text(articles: list[CuratedArticle]) -> str:
+    return " ".join(
+        " ".join(" ".join([article.title, article.snippet]).split())
+        for article in articles
+    ).casefold()
+
+
+def _source_contains_term(source_text: str, term: str) -> bool:
+    normalized_term = " ".join(term.split()).casefold()
+    if normalized_term in source_text:
+        return True
+
+    return (
+        len(normalized_term) > 3
+        and normalized_term.endswith("s")
+        and normalized_term[:-1] in source_text
+    )
+
+
+def _landscape_term_key(value: str) -> str:
+    key = " ".join(value.split()).casefold()
+    if len(key) > 3 and key.endswith("s"):
+        return key[:-1]
+    return key
 
 
 def _strip_markdown_code_fence(response_text: str) -> str:
@@ -388,25 +594,6 @@ def _filter_grounded_evidence(value, article: CuratedArticle) -> list[str]:
             break
 
     return grounded
-
-
-def _clean_daily_trends(value, article_count: int) -> list[str]:
-    if article_count < 2 or not isinstance(value, list):
-        return []
-
-    trends = []
-    for item in value:
-        trend = _clean_sentence(item, max_length=60)
-        if not trend:
-            continue
-
-        if trend not in trends:
-            trends.append(trend)
-
-        if len(trends) == 2:
-            break
-
-    return trends
 
 
 def _clean_sentence(value, max_length: int) -> str:

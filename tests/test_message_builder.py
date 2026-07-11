@@ -1,5 +1,5 @@
 from src.message_builder import build_telegram_message
-from src.models import CuratedArticle
+from src.models import CuratedArticle, DailyLandscape, TrendTheme
 
 
 def make_article(
@@ -287,6 +287,74 @@ def test_daily_trends_render_above_cards() -> None:
     assert "• AI 인프라 투자 확대" in message
     assert "• 모델 가격 경쟁 심화" in message
     assert "Daily High-Signal Tech Alerts" not in message
+
+
+def test_landscape_headline_renders_above_cards() -> None:
+    message = build_telegram_message(
+        [make_article()],
+        landscape=DailyLandscape(
+            headline="AI 인프라 투자와 기업 AI 관련 소식이 함께 나타났습니다."
+        ),
+    )
+
+    assert message.startswith("📰 오늘의 AI Landscape")
+    assert "AI 인프라 투자와 기업 AI 관련 소식이 함께 나타났습니다." in message
+    assert "Daily High-Signal Tech Alerts" not in message
+    assert "━━━━━━━━━━━━━━" in message
+
+
+def test_landscape_empty_matches_existing_header_behavior() -> None:
+    baseline = build_telegram_message([make_article()])
+    with_empty_landscape = build_telegram_message(
+        [make_article()],
+        landscape=DailyLandscape(),
+    )
+
+    assert with_empty_landscape == baseline
+
+
+def test_landscape_sections_hide_empty_fields() -> None:
+    message = build_telegram_message(
+        [make_article()],
+        landscape=DailyLandscape(
+            themes=[TrendTheme(label="AI 인프라 투자", article_indices=[0, 1])],
+        ),
+    )
+
+    assert "주요 흐름" in message
+    assert "• AI 인프라 투자" in message
+    assert "주요 키워드" not in message
+    assert "주요 기업·기관" not in message
+
+
+def test_landscape_keywords_and_entities_render_compactly() -> None:
+    message = build_telegram_message(
+        [make_article()],
+        landscape=DailyLandscape(
+            keywords=["HBM", "GPU", "Inference"],
+            entities=["NVIDIA", "OpenAI", "Samsung"],
+        ),
+    )
+
+    assert "주요 키워드\nHBM · GPU · Inference" in message
+    assert "주요 기업·기관\nNVIDIA · OpenAI · Samsung" in message
+
+
+def test_landscape_text_is_html_escaped() -> None:
+    message = build_telegram_message(
+        [make_article()],
+        landscape=DailyLandscape(
+            headline="OpenAI & Google <AI>",
+            themes=[TrendTheme(label="GPU & HBM <supply>", article_indices=[0, 1])],
+            keywords=["API <pricing>"],
+            entities=["NVIDIA & OpenAI"],
+        ),
+    )
+
+    assert "OpenAI &amp; Google &lt;AI&gt;" in message
+    assert "GPU &amp; HBM &lt;supply&gt;" in message
+    assert "API &lt;pricing&gt;" in message
+    assert "NVIDIA &amp; OpenAI" in message
 
 
 def test_link_url_is_html_attribute_escaped() -> None:

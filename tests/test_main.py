@@ -1,5 +1,5 @@
 from src import main as main_module
-from src.models import Article, CuratedArticle
+from src.models import Article, CuratedArticle, DailyLandscape, TrendTheme
 
 
 def set_required_env(monkeypatch) -> None:
@@ -100,7 +100,7 @@ def test_successful_pipeline_sends_telegram_and_saves_dedup(monkeypatch) -> None
     monkeypatch.setattr(
         main_module,
         "build_telegram_message",
-        lambda articles, header="Daily High-Signal Tech Alerts", show_summary=False, daily_trends=None: "telegram message",
+        lambda articles, header="Daily High-Signal Tech Alerts", show_summary=False, daily_trends=None, landscape=None: "telegram message",
     )
 
     sent_messages = []
@@ -133,7 +133,7 @@ def test_failed_telegram_send_does_not_mark_processed_urls(monkeypatch) -> None:
     monkeypatch.setattr(
         main_module,
         "build_telegram_message",
-        lambda articles, header="Daily High-Signal Tech Alerts", show_summary=False, daily_trends=None: "telegram message",
+        lambda articles, header="Daily High-Signal Tech Alerts", show_summary=False, daily_trends=None, landscape=None: "telegram message",
     )
     monkeypatch.setattr(main_module, "send_telegram_message", lambda *args: False)
 
@@ -182,7 +182,7 @@ def test_missing_openai_api_key_uses_rule_based_selector(monkeypatch) -> None:
     ):
         nonlocal enhancement_called
         enhancement_called = True
-        return articles, []
+        return articles, DailyLandscape()
 
     monkeypatch.setattr(main_module, "enhance_message_with_llm", fake_enhance_message_with_llm)
 
@@ -195,10 +195,13 @@ def test_missing_openai_api_key_uses_rule_based_selector(monkeypatch) -> None:
         header="Daily High-Signal Tech Alerts",
         show_summary=False,
         daily_trends=None,
+        landscape=None,
     ):
         built_articles.extend(curated_articles)
         message_headers.append(header)
         show_summary_values.append(show_summary)
+        assert landscape is not None
+        assert landscape.is_empty()
         return "telegram message"
 
     monkeypatch.setattr(
@@ -256,7 +259,18 @@ def test_nvidia_provider_uses_nim_configuration(monkeypatch) -> None:
         captured["base_url"] = base_url
         captured["timeout_seconds"] = timeout_seconds
         captured["provider"] = provider
-        return [curated_article], ["AI 인프라 투자 확대"]
+        return [curated_article], DailyLandscape(
+            headline="AI 인프라 투자 관련 소식이 함께 나타났습니다.",
+            themes=[
+                TrendTheme(
+                    label="AI 인프라 투자",
+                    article_indices=[0, 1],
+                    summary="GPU와 데이터센터 관련 보도가 함께 나타났습니다.",
+                )
+            ],
+            keywords=["GPU"],
+            entities=["NVIDIA"],
+        )
 
     monkeypatch.setattr(main_module, "enhance_message_with_llm", fake_enhance_message_with_llm)
     captured_message = {}
@@ -266,9 +280,10 @@ def test_nvidia_provider_uses_nim_configuration(monkeypatch) -> None:
         header="Daily High-Signal Tech Alerts",
         show_summary=False,
         daily_trends=None,
+        landscape=None,
     ):
         captured_message["articles"] = articles
-        captured_message["daily_trends"] = daily_trends
+        captured_message["landscape"] = landscape
         captured_message["show_summary"] = show_summary
         return "telegram message"
 
@@ -289,7 +304,10 @@ def test_nvidia_provider_uses_nim_configuration(monkeypatch) -> None:
         "provider": "nvidia",
     }
     assert captured_message["articles"] == [curated_article]
-    assert captured_message["daily_trends"] == ["AI 인프라 투자 확대"]
+    assert captured_message["landscape"].headline == "AI 인프라 투자 관련 소식이 함께 나타났습니다."
+    assert captured_message["landscape"].themes[0].label == "AI 인프라 투자"
+    assert captured_message["landscape"].keywords == ["GPU"]
+    assert captured_message["landscape"].entities == ["NVIDIA"]
     assert captured_message["show_summary"] is True
     assert store.marked_urls == [article.url]
     assert store.saved is True
@@ -325,13 +343,13 @@ def test_openai_provider_uses_message_enhancement(monkeypatch) -> None:
         captured["base_url"] = base_url
         captured["timeout_seconds"] = timeout_seconds
         captured["provider"] = provider
-        return articles, []
+        return articles, DailyLandscape()
 
     monkeypatch.setattr(main_module, "enhance_message_with_llm", fake_enhance_message_with_llm)
     monkeypatch.setattr(
         main_module,
         "build_telegram_message",
-        lambda articles, header="Daily High-Signal Tech Alerts", show_summary=True, daily_trends=None: "telegram message",
+        lambda articles, header="Daily High-Signal Tech Alerts", show_summary=True, daily_trends=None, landscape=None: "telegram message",
     )
     monkeypatch.setattr(main_module, "send_telegram_message", lambda *args: True)
 

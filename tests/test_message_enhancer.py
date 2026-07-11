@@ -7,7 +7,7 @@ from src.message_enhancer import (
     enhance_message_with_llm,
     parse_message_enhancement_response,
 )
-from src.models import CuratedArticle
+from src.models import CuratedArticle, DailyLandscape, TrendTheme
 
 
 MISSING = object()
@@ -73,9 +73,50 @@ def make_article(
     )
 
 
+def make_infrastructure_articles() -> list[CuratedArticle]:
+    return [
+        make_article(
+            title="NVIDIA GPU demand lifts cloud infrastructure spending",
+            snippet=(
+                "NVIDIA GPU demand is increasing cloud infrastructure "
+                "spending for enterprise AI deployments."
+            ),
+            url="https://example.com/one",
+        ),
+        make_article(
+            title="Samsung HBM supply expands for enterprise AI data centers",
+            snippet=(
+                "Samsung HBM and GPU supply are tied to enterprise AI "
+                "data center investment."
+            ),
+            url="https://example.com/two",
+        ),
+        make_article(
+            title="OpenAI API pricing update targets enterprise customers",
+            snippet=(
+                "OpenAI API pricing changes mention enterprise customers "
+                "and inference cost."
+            ),
+            url="https://example.com/three",
+        ),
+    ]
+
+
 def valid_enhancement_response_text() -> str:
     return json.dumps(
         {
+            "landscape": {
+                "headline": "AI 인프라 투자와 기업 AI 관련 소식이 함께 나타났습니다.",
+                "themes": [
+                    {
+                        "label": "AI 인프라 투자",
+                        "article_indices": [0, 1],
+                        "summary": "GPU와 HBM, 데이터센터 투자 관련 소식이 함께 나타났습니다.",
+                    }
+                ],
+                "keywords": ["GPU", "enterprise AI"],
+                "entities": ["NVIDIA", "Samsung"],
+            },
             "articles": [
                 {
                     "index": 0,
@@ -86,7 +127,40 @@ def valid_enhancement_response_text() -> str:
                     "evidence": ["Samsung", "HBM", "investment"],
                 }
             ],
-            "daily_trends": [],
+        }
+    )
+
+
+def response_with_landscape(landscape) -> str:
+    return json.dumps(
+        {
+            "landscape": landscape,
+            "articles": [
+                {
+                    "index": 0,
+                    "korean_title": "엔비디아 GPU 수요와 인프라 투자",
+                    "preview": "",
+                    "why_selected": "인프라 투자 신호가 나타난 기사입니다.",
+                    "confidence": "medium",
+                    "evidence": ["NVIDIA", "GPU"],
+                },
+                {
+                    "index": 1,
+                    "korean_title": "삼성 HBM 공급과 데이터센터 투자",
+                    "preview": "",
+                    "why_selected": "반도체 공급망 신호가 나타난 기사입니다.",
+                    "confidence": "medium",
+                    "evidence": ["Samsung", "HBM"],
+                },
+                {
+                    "index": 2,
+                    "korean_title": "오픈AI API 가격 변화",
+                    "preview": "",
+                    "why_selected": "가격 변화와 기업 도입 신호가 나타난 기사입니다.",
+                    "confidence": "medium",
+                    "evidence": ["OpenAI", "API pricing"],
+                },
+            ],
         }
     )
 
@@ -113,21 +187,7 @@ def successful_response() -> FakeResponseObject:
         choices=[
             FakeChoiceObject(
                 message=FakeMessageObject(
-                    content=json.dumps(
-                        {
-                            "articles": [
-                                {
-                                    "index": 0,
-                                    "korean_title": "삼성과 SK하이닉스의 HBM 투자 확대",
-                                    "preview": "",
-                                    "why_selected": "반도체 공급망 신호가 나타난 기사입니다.",
-                                    "confidence": "medium",
-                                    "evidence": ["Samsung", "HBM"],
-                                }
-                            ],
-                            "daily_trends": [],
-                        }
-                    )
+                    content=valid_enhancement_response_text()
                 )
             )
         ]
@@ -171,17 +231,23 @@ def assert_strict_error(response, expected_stage: str, expected_type: str, monke
 def test_prompt_contains_grounding_guardrails() -> None:
     prompt = build_message_enhancement_prompt([make_article()])
 
-    assert "Do not assume you read the full article body." in prompt
+    assert "You only see Google Alerts metadata, not full article bodies." in prompt
     assert "Use only title, source, snippet, and rule_based_reasons." in prompt
+    assert "Do not claim to have read the article." in prompt
     assert "If there is not enough evidence, return an empty string for preview." in prompt
     assert "Output strict JSON only." in prompt
+    assert "Do not wrap JSON in Markdown fences." in prompt
     assert "Do not write market forecasts." in prompt
     assert "Do not write investment advice." in prompt
     assert "Do not write developer career advice or career insight." in prompt
-    assert "Evidence must contain only words that appear in the original title or snippet." in prompt
-    assert "If there is only one final article, daily_trends must be an empty array." in prompt
-    assert "Include only trends directly supported by at least two final articles." in prompt
-    assert "Return at most two daily_trends items." in prompt
+    assert "Do not invent facts, numbers, causes, outcomes, companies, keywords, or entities." in prompt
+    assert (
+        "Evidence must contain only words that appear in the original title or snippet."
+        in prompt
+    )
+    assert "A daily theme must be supported by multiple articles." in prompt
+    assert "Every theme article index must exist in the input." in prompt
+    assert "Keywords and entities must appear in the source title or snippet." in prompt
     assert "Semantic deduplication is disabled for this release." in prompt
     assert "Do not remove, merge, hide, or reorder articles." in prompt
     assert "Return every article index exactly once." in prompt
@@ -227,11 +293,11 @@ def test_parse_message_enhancement_response_applies_grounded_fields() -> None:
                     "evidence": ["Samsung", "HBM", "investment"],
                 }
             ],
-            "daily_trends": ["AI 반도체 투자 확대"],
+            "landscape": {},
         }
     )
 
-    enhanced_articles, daily_trends = parse_message_enhancement_response(
+    enhanced_articles, landscape = parse_message_enhancement_response(
         response,
         articles,
     )
@@ -242,7 +308,7 @@ def test_parse_message_enhancement_response_applies_grounded_fields() -> None:
     assert enhanced_articles[0].enhanced_why_selected == "반도체 공급망과 인프라 투자 신호가 함께 나타난 기사입니다."
     assert enhanced_articles[0].confidence == "high"
     assert enhanced_articles[0].evidence == ["Samsung", "HBM", "investment"]
-    assert daily_trends == []
+    assert landscape.is_empty()
 
 
 def test_low_confidence_removes_preview() -> None:
@@ -259,11 +325,11 @@ def test_low_confidence_removes_preview() -> None:
                     "evidence": ["Samsung", "HBM"],
                 }
             ],
-            "daily_trends": [],
+            "landscape": {},
         }
     )
 
-    enhanced_articles, _daily_trends = parse_message_enhancement_response(
+    enhanced_articles, _landscape = parse_message_enhancement_response(
         response,
         articles,
     )
@@ -286,11 +352,11 @@ def test_preview_requires_grounded_evidence() -> None:
                     "evidence": ["nonexistent"],
                 }
             ],
-            "daily_trends": [],
+            "landscape": {},
         }
     )
 
-    enhanced_articles, _daily_trends = parse_message_enhancement_response(
+    enhanced_articles, _landscape = parse_message_enhancement_response(
         response,
         articles,
     )
@@ -320,11 +386,11 @@ def test_omitted_article_index_does_not_remove_article() -> None:
                     "evidence": ["Samsung", "HBM"],
                 }
             ],
-            "daily_trends": [],
+            "landscape": {},
         }
     )
 
-    enhanced_articles, _daily_trends = parse_message_enhancement_response(
+    enhanced_articles, _landscape = parse_message_enhancement_response(
         response,
         articles,
     )
@@ -337,15 +403,71 @@ def test_omitted_article_index_does_not_remove_article() -> None:
     assert enhanced_articles[1].enhanced_why_selected == ""
 
 
-def test_daily_trends_allow_only_two_items_for_multiple_articles() -> None:
-    articles = [
-        make_article(url="https://example.com/one"),
-        make_article(
-            title="Enterprise AI deployment and API pricing changes",
-            snippet="Enterprise customer deployment expands as API pricing changes.",
-            url="https://example.com/two",
+def test_landscape_is_parsed_from_multiple_articles() -> None:
+    articles = make_infrastructure_articles()
+    response = json.dumps(
+        {
+            "landscape": {
+                "headline": "AI 인프라 투자와 기업 AI 관련 소식이 함께 나타났습니다.",
+                "themes": [
+                    {
+                        "label": "AI 인프라 투자",
+                        "article_indices": [0, 1],
+                        "summary": "GPU와 HBM, 데이터센터 투자 관련 소식이 함께 나타났습니다.",
+                    },
+                    {
+                        "label": "기업 AI 도입",
+                        "article_indices": [0, 2],
+                        "summary": "enterprise AI와 고객 도입 관련 표현이 함께 나타났습니다.",
+                    },
+                ],
+                "keywords": ["GPU", "Enterprise AI", "inference"],
+                "entities": ["NVIDIA", "Samsung", "OpenAI"],
+            },
+            "articles": [
+                {
+                    "index": 0,
+                    "korean_title": "엔비디아 GPU 수요와 인프라 투자",
+                    "preview": "",
+                    "why_selected": "반도체 공급망 신호가 나타난 기사입니다.",
+                    "confidence": "medium",
+                    "evidence": ["NVIDIA", "GPU"],
+                },
+                {
+                    "index": 1,
+                    "korean_title": "삼성 HBM 공급과 데이터센터 투자",
+                    "preview": "",
+                    "why_selected": "기업 도입과 가격 변화 신호가 나타난 기사입니다.",
+                    "confidence": "medium",
+                    "evidence": ["Samsung", "HBM"],
+                },
+            ],
+        }
+    )
+
+    _enhanced_articles, landscape = parse_message_enhancement_response(
+        response,
+        articles,
+    )
+
+    assert landscape.headline == "AI 인프라 투자와 기업 AI 관련 소식이 함께 나타났습니다."
+    assert landscape.themes == [
+        TrendTheme(
+            label="AI 인프라 투자",
+            article_indices=[0, 1],
+            summary="GPU와 HBM, 데이터센터 투자 관련 소식이 함께 나타났습니다.",
+        ),
+        TrendTheme(
+            label="기업 AI 도입",
+            article_indices=[0, 2],
+            summary="enterprise AI와 고객 도입 관련 표현이 함께 나타났습니다.",
         ),
     ]
+    assert landscape.keywords == ["GPU", "Enterprise AI", "inference"]
+    assert landscape.entities == ["NVIDIA", "Samsung", "OpenAI"]
+
+
+def test_missing_landscape_keeps_article_enhancement() -> None:
     response = json.dumps(
         {
             "articles": [
@@ -356,30 +478,178 @@ def test_daily_trends_allow_only_two_items_for_multiple_articles() -> None:
                     "why_selected": "반도체 공급망 신호가 나타난 기사입니다.",
                     "confidence": "medium",
                     "evidence": ["Samsung", "HBM"],
-                },
-                {
-                    "index": 1,
-                    "korean_title": "기업 AI 도입과 API 가격 변화",
-                    "preview": "",
-                    "why_selected": "기업 도입과 가격 변화 신호가 나타난 기사입니다.",
-                    "confidence": "medium",
-                    "evidence": ["Enterprise", "API pricing"],
-                },
-            ],
-            "daily_trends": [
-                "AI 인프라 투자 확대",
-                "기업 AI 도입 확대",
-                "모델 가격 경쟁 심화",
-            ],
+                }
+            ]
         }
     )
 
-    _enhanced_articles, daily_trends = parse_message_enhancement_response(
+    enhanced_articles, landscape = parse_message_enhancement_response(
+        response,
+        [make_article()],
+    )
+
+    assert enhanced_articles[0].korean_title == "삼성과 SK하이닉스의 HBM 투자 확대"
+    assert landscape.is_empty()
+
+
+def test_invalid_landscape_shapes_are_removed() -> None:
+    articles = make_infrastructure_articles()
+    response = response_with_landscape(
+        {
+            "headline": ["not a string"],
+            "themes": "not a list",
+            "keywords": "GPU",
+            "entities": "NVIDIA",
+        }
+    )
+
+    _enhanced_articles, landscape = parse_message_enhancement_response(
         response,
         articles,
     )
 
-    assert daily_trends == ["AI 인프라 투자 확대", "기업 AI 도입 확대"]
+    assert landscape.is_empty()
+
+
+def test_landscape_theme_validation_removes_invalid_indices_and_singletons() -> None:
+    articles = make_infrastructure_articles()
+    response = response_with_landscape(
+        {
+            "headline": "AI 인프라 관련 소식이 함께 나타났습니다.",
+            "themes": [
+                {
+                    "label": "AI 인프라 투자",
+                    "article_indices": [0, 1, 99, 1, -1, True],
+                    "summary": "GPU와 HBM 관련 보도가 함께 나타났습니다.",
+                },
+                {
+                    "label": "기업 AI 도입",
+                    "article_indices": [2],
+                    "summary": "단일 기사만 포함된 주제입니다.",
+                },
+                {
+                    "label": "AI",
+                    "article_indices": [0, 1],
+                    "summary": "너무 넓은 주제입니다.",
+                },
+            ],
+            "keywords": [],
+            "entities": [],
+        }
+    )
+
+    _enhanced_articles, landscape = parse_message_enhancement_response(
+        response,
+        articles,
+    )
+
+    assert landscape.themes == [
+        TrendTheme(
+            label="AI 인프라 투자",
+            article_indices=[0, 1],
+            summary="GPU와 HBM 관련 보도가 함께 나타났습니다.",
+        )
+    ]
+
+
+def test_landscape_limits_themes_keywords_and_entities() -> None:
+    articles = make_infrastructure_articles()
+    response = response_with_landscape(
+        {
+            "headline": "AI 인프라와 기업 도입 관련 소식이 함께 나타났습니다.",
+            "themes": [
+                {"label": "AI 인프라 투자", "article_indices": [0, 1], "summary": ""},
+                {"label": "기업 AI 도입", "article_indices": [0, 2], "summary": ""},
+                {"label": "모델 가격과 비용", "article_indices": [0, 2], "summary": ""},
+                {"label": "반도체 공급망", "article_indices": [0, 1], "summary": ""},
+                {"label": "정부 규제", "article_indices": [1, 2], "summary": ""},
+            ],
+            "keywords": [
+                "GPU",
+                "HBM",
+                "enterprise AI",
+                "data center",
+                "API pricing",
+                "inference",
+                "cloud infrastructure",
+            ],
+            "entities": ["NVIDIA", "Samsung", "OpenAI", "GPU", "HBM", "API"],
+        }
+    )
+
+    _enhanced_articles, landscape = parse_message_enhancement_response(
+        response,
+        articles,
+    )
+
+    assert [theme.label for theme in landscape.themes] == [
+        "AI 인프라 투자",
+        "기업 AI 도입",
+        "모델 가격과 비용",
+        "반도체 공급망",
+    ]
+    assert landscape.keywords == [
+        "GPU",
+        "HBM",
+        "enterprise AI",
+        "data center",
+        "API pricing",
+        "inference",
+    ]
+    assert landscape.entities == ["NVIDIA", "Samsung", "OpenAI", "GPU", "HBM"]
+
+
+def test_landscape_removes_ungrounded_and_duplicate_terms() -> None:
+    articles = make_infrastructure_articles()
+    response = response_with_landscape(
+        {
+            "headline": "AI 인프라 관련 소식이 함께 나타났습니다.",
+            "themes": [],
+            "keywords": ["GPU", "gpu", "GPUs", "future moat", "AI"],
+            "entities": ["NVIDIA", "nvidia", "Anthropic", "company"],
+        }
+    )
+
+    _enhanced_articles, landscape = parse_message_enhancement_response(
+        response,
+        articles,
+    )
+
+    assert landscape.keywords == ["GPU"]
+    assert landscape.entities == ["NVIDIA"]
+
+
+def test_landscape_headline_requires_multiple_articles() -> None:
+    response = json.dumps(
+        {
+            "landscape": {
+                "headline": "AI 인프라 관련 소식이 함께 나타났습니다.",
+                "themes": [],
+                "keywords": ["HBM"],
+                "entities": ["Samsung"],
+            },
+            "articles": [
+                {
+                    "index": 0,
+                    "korean_title": "삼성과 SK하이닉스의 HBM 투자 확대",
+                    "preview": "",
+                    "why_selected": "반도체 공급망 신호가 나타난 기사입니다.",
+                    "confidence": "medium",
+                    "evidence": ["Samsung", "HBM"],
+                }
+            ],
+        }
+    )
+
+    _enhanced_articles, landscape = parse_message_enhancement_response(
+        response,
+        [make_article()],
+    )
+
+    assert landscape.headline == ""
+    assert landscape.themes == []
+    assert landscape.keywords == ["HBM"]
+    assert landscape.entities == ["Samsung"]
 
 
 def test_json_code_fenced_response_is_parsed() -> None:
@@ -388,13 +658,13 @@ def test_json_code_fenced_response_is_parsed() -> None:
 {valid_enhancement_response_text()}
 ```"""
 
-    enhanced_articles, daily_trends = parse_message_enhancement_response(
+    enhanced_articles, landscape = parse_message_enhancement_response(
         response,
         articles,
     )
 
     assert enhanced_articles[0].korean_title == "삼성과 SK하이닉스의 HBM 투자 확대"
-    assert daily_trends == []
+    assert isinstance(landscape, DailyLandscape)
 
 
 def test_plain_code_fenced_response_is_parsed() -> None:
@@ -403,25 +673,25 @@ def test_plain_code_fenced_response_is_parsed() -> None:
 {valid_enhancement_response_text()}
 ```"""
 
-    enhanced_articles, daily_trends = parse_message_enhancement_response(
+    enhanced_articles, landscape = parse_message_enhancement_response(
         response,
         articles,
     )
 
     assert enhanced_articles[0].korean_title == "삼성과 SK하이닉스의 HBM 투자 확대"
-    assert daily_trends == []
+    assert isinstance(landscape, DailyLandscape)
 
 
 def test_pure_json_response_is_still_parsed() -> None:
     articles = [make_article()]
 
-    enhanced_articles, daily_trends = parse_message_enhancement_response(
+    enhanced_articles, landscape = parse_message_enhancement_response(
         valid_enhancement_response_text(),
         articles,
     )
 
     assert enhanced_articles[0].korean_title == "삼성과 SK하이닉스의 HBM 투자 확대"
-    assert daily_trends == []
+    assert isinstance(landscape, DailyLandscape)
 
 
 def test_prefaced_json_is_rejected_without_repair() -> None:
@@ -429,13 +699,13 @@ def test_prefaced_json_is_rejected_without_repair() -> None:
 
 {valid_enhancement_response_text()}"""
 
-    enhanced_articles, daily_trends = parse_message_enhancement_response(
+    enhanced_articles, landscape = parse_message_enhancement_response(
         response,
         [make_article()],
     )
 
     assert enhanced_articles == []
-    assert daily_trends == []
+    assert landscape.is_empty()
 
 
 def test_result_prefaced_json_is_rejected_without_repair() -> None:
@@ -443,32 +713,32 @@ def test_result_prefaced_json_is_rejected_without_repair() -> None:
 
 {valid_enhancement_response_text()}"""
 
-    enhanced_articles, daily_trends = parse_message_enhancement_response(
+    enhanced_articles, landscape = parse_message_enhancement_response(
         response,
         [make_article()],
     )
 
     assert enhanced_articles == []
-    assert daily_trends == []
+    assert landscape.is_empty()
 
 
 def test_code_fenced_malformed_json_fails_without_repair() -> None:
     response = """```json
-{"articles": [{"index": 0,}], "daily_trends": []}
+{"articles": [{"index": 0,}], "landscape": {}}
 ```"""
 
-    enhanced_articles, daily_trends = parse_message_enhancement_response(
+    enhanced_articles, landscape = parse_message_enhancement_response(
         response,
         [make_article()],
     )
 
     assert enhanced_articles == []
-    assert daily_trends == []
+    assert landscape.is_empty()
 
 
 def test_strict_code_fenced_malformed_json_keeps_parse_error() -> None:
     response = """```json
-{"articles": [{"index": 0,}], "daily_trends": []}
+{"articles": [{"index": 0,}], "landscape": {}}
 ```"""
 
     try:
@@ -483,7 +753,7 @@ def test_strict_code_fenced_malformed_json_keeps_parse_error() -> None:
         assert "not valid JSON" in exc.message
         assert (
             exc.response_excerpt
-            == '```json {"articles": [{"index": 0,}], "daily_trends": []} ```'
+            == '```json {"articles": [{"index": 0,}], "landscape": {}} ```'
         )
     else:
         raise AssertionError("Expected LLMEnhancementError")
@@ -498,7 +768,7 @@ def test_non_strict_code_fenced_malformed_json_preserves_fallback(
             FakeChoiceObject(
                 message=FakeMessageObject(
                     content="""```json
-{"articles": [{"index": 0,}], "daily_trends": []}
+{"articles": [{"index": 0,}], "landscape": {}}
 ```"""
                 )
             )
@@ -506,14 +776,14 @@ def test_non_strict_code_fenced_malformed_json_preserves_fallback(
     )
     fake_openai_returning(monkeypatch, response=response)
 
-    enhanced_articles, daily_trends = enhance_message_with_llm(
+    enhanced_articles, landscape = enhance_message_with_llm(
         articles,
         api_key="api-key",
         model="nvidia-model",
     )
 
     assert enhanced_articles == articles
-    assert daily_trends == []
+    assert landscape.is_empty()
 
 
 def test_enhance_message_with_llm_passes_timeout_to_openai_client(monkeypatch) -> None:
@@ -534,7 +804,7 @@ def test_enhance_message_with_llm_passes_timeout_to_openai_client(monkeypatch) -
                                 "evidence": ["Samsung", "HBM"],
                             }
                         ],
-                        "daily_trends": [],
+                        "landscape": {},
                     }
                 )
             )
@@ -561,7 +831,7 @@ def test_enhance_message_with_llm_passes_timeout_to_openai_client(monkeypatch) -
 
     monkeypatch.setattr(message_enhancer_module, "OpenAI", FakeOpenAI)
 
-    enhanced_articles, _daily_trends = enhance_message_with_llm(
+    enhanced_articles, _landscape = enhance_message_with_llm(
         [make_article()],
         api_key="api-key",
         model="nvidia-model",
@@ -581,7 +851,7 @@ def test_minimax_m3_request_uses_nvidia_build_defaults(monkeypatch) -> None:
     captured_create_kwargs = {}
     fake_openai_capturing_create_kwargs(monkeypatch, captured_create_kwargs)
 
-    enhanced_articles, _daily_trends = enhance_message_with_llm(
+    enhanced_articles, _landscape = enhance_message_with_llm(
         [make_article()],
         api_key="api-key",
         model="minimaxai/minimax-m3",
@@ -656,14 +926,14 @@ def test_enhance_message_with_llm_preserves_fallback_on_api_error(monkeypatch) -
 
     monkeypatch.setattr(message_enhancer_module, "OpenAI", FakeOpenAI)
 
-    enhanced_articles, daily_trends = enhance_message_with_llm(
+    enhanced_articles, landscape = enhance_message_with_llm(
         articles,
         api_key="api-key",
         model="nvidia-model",
     )
 
     assert enhanced_articles == articles
-    assert daily_trends == []
+    assert landscape.is_empty()
 
 
 def test_enhance_message_with_llm_strict_api_error_is_sanitized(monkeypatch) -> None:
@@ -851,7 +1121,7 @@ def test_normal_response_content_is_passed_to_parser(monkeypatch) -> None:
                     "evidence": ["Samsung", "HBM"],
                 }
             ],
-            "daily_trends": [],
+            "landscape": {},
         }
     )
     response = FakeResponseObject(
@@ -865,7 +1135,7 @@ def test_normal_response_content_is_passed_to_parser(monkeypatch) -> None:
     )
     fake_openai_returning(monkeypatch, response=response)
 
-    enhanced_articles, daily_trends = enhance_message_with_llm(
+    enhanced_articles, landscape = enhance_message_with_llm(
         [make_article()],
         api_key="api-key",
         model="nvidia-model",
@@ -873,7 +1143,7 @@ def test_normal_response_content_is_passed_to_parser(monkeypatch) -> None:
     )
 
     assert enhanced_articles[0].korean_title == "삼성과 SK하이닉스의 HBM 투자 확대"
-    assert daily_trends == []
+    assert landscape.is_empty()
 
 
 def test_api_call_exception_is_api_request_failed(monkeypatch) -> None:
@@ -911,14 +1181,14 @@ def test_non_strict_response_structure_error_preserves_fallback(monkeypatch) -> 
     response = FakeResponseObject(choices=[])
     fake_openai_returning(monkeypatch, response=response)
 
-    enhanced_articles, daily_trends = enhance_message_with_llm(
+    enhanced_articles, landscape = enhance_message_with_llm(
         articles,
         api_key="api-key",
         model="nvidia-model",
     )
 
     assert enhanced_articles == articles
-    assert daily_trends == []
+    assert landscape.is_empty()
 
 
 def test_parse_message_enhancement_response_strict_json_error_has_excerpt() -> None:
@@ -940,7 +1210,7 @@ def test_parse_message_enhancement_response_strict_json_error_has_excerpt() -> N
 
 
 def test_parse_message_enhancement_response_strict_empty_articles_fails() -> None:
-    response_text = json.dumps({"articles": [], "daily_trends": []})
+    response_text = json.dumps({"articles": [], "landscape": {}})
 
     try:
         parse_message_enhancement_response(
