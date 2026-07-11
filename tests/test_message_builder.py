@@ -250,6 +250,12 @@ def test_enhanced_korean_title_and_preview_render() -> None:
     assert "AI 반도체 투자 확대를 다룬 기사입니다." in message
 
 
+def test_empty_korean_title_is_hidden() -> None:
+    message = build_telegram_message([make_article(korean_title="")])
+
+    assert "🇰🇷" not in message
+
+
 def test_low_confidence_preview_is_hidden() -> None:
     message = build_telegram_message(
         [
