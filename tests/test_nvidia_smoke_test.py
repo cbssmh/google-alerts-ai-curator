@@ -1,20 +1,26 @@
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 
 import pytest
 
 from scripts import smoke_test_nvidia_enhancer as smoke_module
+from src import message_enhancer as message_enhancer_module
 from src.dedup_store import DedupStore
 from src.message_enhancer import LLMEnhancementError
 from src.rule_based_selector import select_high_signal_articles
 
 
-def make_env() -> dict[str, str]:
+MINIMAX_MODEL = "minimaxai/minimax-m3"
+MISTRAL_MODEL = "mistralai/mistral-medium-3.5-128b"
+
+
+def make_env(model: str = MINIMAX_MODEL) -> dict[str, str]:
     return {
         "LLM_PROVIDER": "nvidia",
         "NVIDIA_API_KEY": "secret-nvidia-key",
-        "NVIDIA_MODEL": "minimaxai/minimax-m3",
+        "NVIDIA_MODEL": model,
         "NVIDIA_TIMEOUT_SECONDS": "60",
         "TELEGRAM_BOT_TOKEN": "secret-telegram-token",
         "TELEGRAM_CHAT_ID": "secret-chat-id",
@@ -66,12 +72,18 @@ def test_missing_nvidia_model_fails() -> None:
         smoke_module.run_smoke_test(env, emit_logs=False)
 
 
-def test_unexpected_nvidia_model_fails() -> None:
-    env = make_env()
-    env["NVIDIA_MODEL"] = "other/model"
+@pytest.mark.parametrize(
+    "model",
+    [
+        MINIMAX_MODEL,
+        MISTRAL_MODEL,
+        "vendor/custom-nvidia-model",
+    ],
+)
+def test_non_empty_nvidia_model_ids_pass_validation(model: str) -> None:
+    env = make_env(model=model)
 
-    with pytest.raises(smoke_module.SmokeTestError, match="minimaxai/minimax-m3"):
-        smoke_module.run_smoke_test(env, emit_logs=False)
+    smoke_module._validate_required_env(env)
 
 
 def test_fixture_articles_pass_rule_based_selector() -> None:
@@ -85,11 +97,13 @@ def test_fixture_articles_pass_rule_based_selector() -> None:
     assert all("Synthetic" in article.source for article in fixtures)
 
 
+@pytest.mark.parametrize("model", [MINIMAX_MODEL, MISTRAL_MODEL])
 def test_smoke_test_reuses_enhancer_builder_and_sender_without_dedup(
     monkeypatch,
     capsys,
+    model: str,
 ) -> None:
-    env = make_env()
+    env = make_env(model=model)
     calls = {
         "enhancer": False,
         "builder": False,
@@ -172,7 +186,7 @@ def test_smoke_test_reuses_enhancer_builder_and_sender_without_dedup(
     assert result["daily_trends_count"] == 1
     assert result["telegram_send_success"] is True
     assert "provider: nvidia" in logged_text
-    assert "model: minimaxai/minimax-m3" in logged_text
+    assert f"model: {model}" in logged_text
 
     secret_values = (
         env["NVIDIA_API_KEY"],
@@ -192,6 +206,84 @@ def test_smoke_test_reuses_enhancer_builder_and_sender_without_dedup(
     )
     for secret_value in secret_values:
         assert secret_value not in generated_file_text
+
+
+def test_mistral_smoke_path_uses_common_nvidia_kwargs_without_minimax_extra_body(
+    monkeypatch,
+) -> None:
+    env = make_env(model=MISTRAL_MODEL)
+    captured_create_kwargs = {}
+
+    class FakeMessage:
+        def __init__(self, content):
+            self.content = content
+
+    class FakeChoice:
+        def __init__(self, content):
+            self.message = FakeMessage(content)
+
+    class FakeResponse:
+        def __init__(self, content):
+            self.choices = [FakeChoice(content)]
+
+    class FakeCompletions:
+        def create(self, **kwargs):
+            captured_create_kwargs.update(kwargs)
+            return FakeResponse(
+                json.dumps(
+                    {
+                        "articles": [
+                            {
+                                "index": 0,
+                                "korean_title": "AI 반도체 공급 확대 테스트",
+                                "preview": "HBM과 GPU 공급 확대 신호를 다룬 테스트입니다.",
+                                "why_selected": "반도체 공급망과 인프라 투자 신호가 함께 나타난 테스트입니다.",
+                                "confidence": "high",
+                                "evidence": ["HBM", "GPU"],
+                            },
+                            {
+                                "index": 1,
+                                "korean_title": "기업 AI 가격 변화 테스트",
+                                "preview": "API pricing과 enterprise customer 신호를 다룬 테스트입니다.",
+                                "why_selected": "가격 변화와 기업 도입 신호가 함께 나타난 테스트입니다.",
+                                "confidence": "medium",
+                                "evidence": ["API pricing", "enterprise customer"],
+                            },
+                            {
+                                "index": 2,
+                                "korean_title": "모호한 플랫폼 업데이트 테스트",
+                                "preview": "",
+                                "why_selected": "세부 근거가 제한적인 기업 워크플로 테스트입니다.",
+                                "confidence": "low",
+                                "evidence": [],
+                            },
+                        ],
+                        "daily_trends": ["기업 AI 인프라 신호"],
+                    }
+                )
+            )
+
+    class FakeChat:
+        completions = FakeCompletions()
+
+    class FakeOpenAI:
+        def __init__(self, **kwargs):
+            self.chat = FakeChat()
+
+    monkeypatch.setattr(message_enhancer_module, "OpenAI", FakeOpenAI)
+    monkeypatch.setattr(smoke_module, "send_telegram_message", lambda *args: True)
+
+    result = smoke_module.run_smoke_test(env, emit_logs=False)
+
+    assert result["llm_enhancement_success"] is True
+    assert result["telegram_send_success"] is True
+    assert captured_create_kwargs["model"] == MISTRAL_MODEL
+    assert captured_create_kwargs["max_tokens"] == 2048
+    assert captured_create_kwargs["temperature"] == 0.2
+    assert captured_create_kwargs["stream"] is False
+    assert "extra_body" not in captured_create_kwargs
+    assert "reasoning_effort" not in captured_create_kwargs
+    assert "top_p" not in captured_create_kwargs
 
 
 def test_llm_failure_fails_workflow_before_telegram(monkeypatch, capsys) -> None:

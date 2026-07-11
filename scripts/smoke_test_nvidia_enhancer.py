@@ -21,7 +21,6 @@ from src.telegram_sender import send_telegram_message
 
 SMOKE_TEST_PREFIX = "[SMOKE TEST]"
 EXPECTED_PROVIDER = "nvidia"
-EXPECTED_MODEL = "minimaxai/minimax-m3"
 
 
 class SmokeTestError(RuntimeError):
@@ -196,12 +195,6 @@ def _validate_required_env(env: Mapping[str, str]) -> None:
     if missing:
         raise SmokeTestError(
             "Missing required environment variables: " + ", ".join(missing)
-        )
-
-    model = env.get("NVIDIA_MODEL", "").strip()
-    if model != EXPECTED_MODEL:
-        raise SmokeTestError(
-            f"NVIDIA_MODEL must be '{EXPECTED_MODEL}' for this smoke test."
         )
 
 
