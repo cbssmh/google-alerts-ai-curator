@@ -254,6 +254,33 @@ def test_prompt_contains_grounding_guardrails() -> None:
     assert "Leave duplicate handling to the existing URL and rule-based steps." in prompt
 
 
+def test_prompt_guides_operational_message_ux_tuning() -> None:
+    prompt = build_message_enhancement_prompt([make_article()])
+
+    assert (
+        "why_selected must explain what this article shows within today's selected batch"
+        in prompt
+    )
+    assert "not just why a keyword matched" in prompt
+    assert (
+        "connect why_selected to the most relevant observable theme"
+        in prompt
+    )
+    assert (
+        "If landscape is empty, explain the rule-based reason in reader-friendly Korean."
+        in prompt
+    )
+    assert "키워드로 선택됐습니다" in prompt
+    assert "preview must not simply repeat the title." in prompt
+    assert "preview should avoid generic endings" in prompt
+    assert "소개됐습니다" in prompt
+    assert "preview must not add causality, market impact, or future implications" in prompt
+    assert "korean_title must not use sensational wording" in prompt
+    assert "Prefer a natural Korean noun phrase over literal translation." in prompt
+    assert "핫 코너" in prompt
+    assert "Preserve companies, numbers, and event type when source-grounded." in prompt
+
+
 def test_prompt_has_no_conflicting_semantic_dedup_instructions() -> None:
     prompt = build_message_enhancement_prompt(
         [

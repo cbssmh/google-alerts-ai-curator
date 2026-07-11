@@ -273,7 +273,9 @@ def test_enhanced_why_selected_takes_priority() -> None:
         ]
     )
 
+    assert "이 기사가 보여주는 것\n반도체 공급망 변화가 핵심인 기사입니다." in message
     assert "반도체 공급망 변화가 핵심인 기사입니다." in message
+    assert "✓ Why selected\n반도체 공급망 변화가 핵심인 기사입니다." not in message
     assert "신뢰도 높은 출처" not in message
 
 
@@ -303,6 +305,21 @@ def test_landscape_headline_renders_above_cards() -> None:
     assert "━━━━━━━━━━━━━━" in message
 
 
+def test_landscape_scope_line_uses_actual_article_count() -> None:
+    message = build_telegram_message(
+        [
+            make_article("First"),
+            make_article("Second"),
+            make_article("Third"),
+        ],
+        landscape=DailyLandscape(
+            headline="AI 인프라 투자와 기업 AI 관련 소식이 함께 나타났습니다."
+        ),
+    )
+
+    assert "선택된 3개 기사에서 관찰된 패턴입니다." in message
+
+
 def test_landscape_empty_matches_existing_header_behavior() -> None:
     baseline = build_telegram_message([make_article()])
     with_empty_landscape = build_telegram_message(
@@ -311,6 +328,7 @@ def test_landscape_empty_matches_existing_header_behavior() -> None:
     )
 
     assert with_empty_landscape == baseline
+    assert "선택된 1개 기사에서 관찰된 패턴입니다." not in with_empty_landscape
 
 
 def test_landscape_sections_hide_empty_fields() -> None:
@@ -321,7 +339,7 @@ def test_landscape_sections_hide_empty_fields() -> None:
         ),
     )
 
-    assert "주요 흐름" in message
+    assert "📌 주요 흐름" in message
     assert "• AI 인프라 투자" in message
     assert "주요 키워드" not in message
     assert "주요 기업·기관" not in message

@@ -32,7 +32,10 @@ def build_telegram_message(
         for index, article in enumerate(articles, start=1)
     ]
     sections = []
-    landscape_section = _build_landscape_section(landscape)
+    landscape_section = _build_landscape_section(
+        landscape,
+        article_count=len(articles),
+    )
     if landscape_section:
         sections.append(landscape_section)
     else:
@@ -61,12 +64,14 @@ def _build_article_section(index: int, article: CuratedArticle) -> str:
         lines.extend(["", _escape_text(preview)])
 
     why_selected = _clean_text(article.enhanced_why_selected)
+    why_selected_label = "이 기사가 보여주는 것"
     if not why_selected:
         reasons = _reader_facing_reasons(article.recommendation_reasons)
         why_selected = " · ".join(reasons)
+        why_selected_label = "✓ Why selected"
 
     if why_selected:
-        lines.extend(["", "✓ Why selected", _escape_text(why_selected)])
+        lines.extend(["", why_selected_label, _escape_text(why_selected)])
 
     lines.append(
         f'🔗 <a href="{_escape_attr(article.url)}">Read →</a>'
@@ -92,11 +97,18 @@ def _build_daily_trends_section(daily_trends: list[str]) -> str:
     return "\n".join(lines)
 
 
-def _build_landscape_section(landscape: DailyLandscape | None) -> str:
+def _build_landscape_section(
+    landscape: DailyLandscape | None,
+    article_count: int,
+) -> str:
     if landscape is None or landscape.is_empty():
         return ""
 
-    lines = ["📰 오늘의 AI Landscape"]
+    lines = [
+        "📰 오늘의 AI Landscape",
+        "",
+        _escape_text(f"선택된 {article_count}개 기사에서 관찰된 패턴입니다."),
+    ]
     headline = _clean_text(landscape.headline)
     if headline:
         lines.extend(["", _escape_text(headline)])
@@ -108,7 +120,7 @@ def _build_landscape_section(landscape: DailyLandscape | None) -> str:
             theme_labels.append(label)
 
     if theme_labels:
-        lines.extend(["", "주요 흐름"])
+        lines.extend(["", "📌 주요 흐름"])
         lines.extend(f"• {_escape_text(label)}" for label in theme_labels)
 
     keywords = _clean_unique_terms(landscape.keywords, limit=6)

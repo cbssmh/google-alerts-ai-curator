@@ -143,10 +143,21 @@ Output rules:
 - Keep the original article title unchanged by referring to articles by index.
 - korean_title must be short, natural, and grounded in the title/snippet.
 - korean_title should be 20 to 45 Korean characters when possible.
+- korean_title must not use sensational wording or stronger claims than the source title.
+- Prefer a natural Korean noun phrase over literal translation.
+- Avoid unnecessary literal hype such as "핫 코너", "AI 거인", "판도를 바꾸다", or "시험하다".
+- Preserve companies, numbers, and event type when source-grounded.
 - preview must be 25 to 70 Korean characters.
 - preview must be one sentence.
 - preview must not include future outlook, investment advice, or career advice.
-- why_selected should explain the rule-based signal in one reader-friendly Korean sentence.
+- preview must not simply repeat the title.
+- preview should avoid generic endings such as "소개됐습니다", "다뤄졌습니다", or "언급됐습니다" unless the sentence also states a concrete source-grounded scope.
+- preview must not add causality, market impact, or future implications not present in the title/snippet.
+- Vary preview wording without changing facts.
+- why_selected must explain what this article shows within today's selected batch, not just why a keyword matched.
+- When landscape themes exist, connect why_selected to the most relevant observable theme without inventing a new theme.
+- If landscape is empty, explain the rule-based reason in reader-friendly Korean.
+- Avoid wording like "키워드로 선택됐습니다", "신호로 추천했습니다", or "점수가 높아서 선택됐습니다".
 - confidence must be one of: high, medium, low.
 - If confidence is low, preview must be an empty string.
 
