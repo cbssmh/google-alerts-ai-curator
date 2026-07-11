@@ -222,8 +222,9 @@ def parse_message_enhancement_response(
             )
         return [], []
 
+    json_text = _strip_markdown_code_fence(response_text)
     try:
-        data = json.loads(response_text)
+        data = json.loads(json_text)
     except json.JSONDecodeError as exc:
         if raise_on_error:
             raise LLMEnhancementError(
@@ -311,6 +312,21 @@ def parse_message_enhancement_response(
         data.get("daily_trends", []),
         article_count=len(enhanced_articles),
     )
+
+
+def _strip_markdown_code_fence(response_text: str) -> str:
+    stripped_text = response_text.strip()
+    lines = stripped_text.splitlines()
+    if len(lines) < 3:
+        return response_text
+
+    if lines[0] not in ("```json", "```"):
+        return response_text
+
+    if lines[-1] != "```":
+        return response_text
+
+    return "\n".join(lines[1:-1]).strip()
 
 
 def _clean_korean_title(value) -> str:

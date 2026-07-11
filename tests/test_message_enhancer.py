@@ -73,6 +73,24 @@ def make_article(
     )
 
 
+def valid_enhancement_response_text() -> str:
+    return json.dumps(
+        {
+            "articles": [
+                {
+                    "index": 0,
+                    "korean_title": "삼성과 SK하이닉스의 HBM 투자 확대",
+                    "preview": "삼성과 SK하이닉스의 HBM 투자 확대를 다룬 기사입니다.",
+                    "why_selected": "반도체 공급망과 인프라 투자 신호가 함께 나타난 기사입니다.",
+                    "confidence": "high",
+                    "evidence": ["Samsung", "HBM", "investment"],
+                }
+            ],
+            "daily_trends": [],
+        }
+    )
+
+
 def fake_openai_returning(monkeypatch, response=None, error=None):
     class FakeCompletions:
         def create(self, model, messages):
@@ -364,10 +382,10 @@ def test_daily_trends_allow_only_two_items_for_multiple_articles() -> None:
     assert daily_trends == ["AI 인프라 투자 확대", "기업 AI 도입 확대"]
 
 
-def test_markdown_wrapped_json_is_rejected_without_repair() -> None:
+def test_json_code_fenced_response_is_parsed() -> None:
     articles = [make_article()]
-    response = """```json
-{"articles": [], "daily_trends": []}
+    response = f"""```json
+{valid_enhancement_response_text()}
 ```"""
 
     enhanced_articles, daily_trends = parse_message_enhancement_response(
@@ -375,7 +393,126 @@ def test_markdown_wrapped_json_is_rejected_without_repair() -> None:
         articles,
     )
 
+    assert enhanced_articles[0].korean_title == "삼성과 SK하이닉스의 HBM 투자 확대"
+    assert daily_trends == []
+
+
+def test_plain_code_fenced_response_is_parsed() -> None:
+    articles = [make_article()]
+    response = f"""```
+{valid_enhancement_response_text()}
+```"""
+
+    enhanced_articles, daily_trends = parse_message_enhancement_response(
+        response,
+        articles,
+    )
+
+    assert enhanced_articles[0].korean_title == "삼성과 SK하이닉스의 HBM 투자 확대"
+    assert daily_trends == []
+
+
+def test_pure_json_response_is_still_parsed() -> None:
+    articles = [make_article()]
+
+    enhanced_articles, daily_trends = parse_message_enhancement_response(
+        valid_enhancement_response_text(),
+        articles,
+    )
+
+    assert enhanced_articles[0].korean_title == "삼성과 SK하이닉스의 HBM 투자 확대"
+    assert daily_trends == []
+
+
+def test_prefaced_json_is_rejected_without_repair() -> None:
+    response = f"""Here is JSON
+
+{valid_enhancement_response_text()}"""
+
+    enhanced_articles, daily_trends = parse_message_enhancement_response(
+        response,
+        [make_article()],
+    )
+
     assert enhanced_articles == []
+    assert daily_trends == []
+
+
+def test_result_prefaced_json_is_rejected_without_repair() -> None:
+    response = f"""Result:
+
+{valid_enhancement_response_text()}"""
+
+    enhanced_articles, daily_trends = parse_message_enhancement_response(
+        response,
+        [make_article()],
+    )
+
+    assert enhanced_articles == []
+    assert daily_trends == []
+
+
+def test_code_fenced_malformed_json_fails_without_repair() -> None:
+    response = """```json
+{"articles": [{"index": 0,}], "daily_trends": []}
+```"""
+
+    enhanced_articles, daily_trends = parse_message_enhancement_response(
+        response,
+        [make_article()],
+    )
+
+    assert enhanced_articles == []
+    assert daily_trends == []
+
+
+def test_strict_code_fenced_malformed_json_keeps_parse_error() -> None:
+    response = """```json
+{"articles": [{"index": 0,}], "daily_trends": []}
+```"""
+
+    try:
+        parse_message_enhancement_response(
+            response,
+            [make_article()],
+            raise_on_error=True,
+        )
+    except LLMEnhancementError as exc:
+        assert exc.stage == "response_parse_failed"
+        assert exc.error_type == "InvalidJSONError"
+        assert "not valid JSON" in exc.message
+        assert (
+            exc.response_excerpt
+            == '```json {"articles": [{"index": 0,}], "daily_trends": []} ```'
+        )
+    else:
+        raise AssertionError("Expected LLMEnhancementError")
+
+
+def test_non_strict_code_fenced_malformed_json_preserves_fallback(
+    monkeypatch,
+) -> None:
+    articles = [make_article()]
+    response = FakeResponseObject(
+        choices=[
+            FakeChoiceObject(
+                message=FakeMessageObject(
+                    content="""```json
+{"articles": [{"index": 0,}], "daily_trends": []}
+```"""
+                )
+            )
+        ]
+    )
+    fake_openai_returning(monkeypatch, response=response)
+
+    enhanced_articles, daily_trends = enhance_message_with_llm(
+        articles,
+        api_key="api-key",
+        model="nvidia-model",
+    )
+
+    assert enhanced_articles == articles
     assert daily_trends == []
 
 
